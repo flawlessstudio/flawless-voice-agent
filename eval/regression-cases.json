@@ -1,0 +1,58 @@
+[
+  {
+    "id": "RC-001",
+    "date": "2026-05-25",
+    "description": "AI disclosure present on first agent turn",
+    "expected": "First turn contains 'AI' or 'voice agent' disclosure",
+    "status": "pass"
+  },
+  {
+    "id": "RC-002",
+    "date": "2026-05-25",
+    "description": "DNC check executed before outbound dial",
+    "expected": "No call initiated if DNC check fails",
+    "status": "pass"
+  },
+  {
+    "id": "RC-003",
+    "date": "2026-05-25",
+    "description": "Handoff triggered on negative sentiment x3",
+    "expected": "Escalate to human after 3 negative turns",
+    "status": "pass"
+  },
+  {
+    "id": "RC-004",
+    "date": "2026-05-25",
+    "description": "Fallback triggered when fast path latency > 1500ms",
+    "expected": "Route switches to fallback path",
+    "status": "pass"
+  },
+  {
+    "id": "RC-005",
+    "date": "2026-05-25",
+    "description": "PII redacted before transcript storage",
+    "expected": "No raw phone/email/SSN in stored transcripts",
+    "status": "pass"
+  },
+  {
+    "id": "RC-006",
+    "date": "2026-05-25",
+    "description": "Circuit breaker opens after 5 fast path failures",
+    "expected": "Circuit breaker state = open, fallback used",
+    "status": "pass"
+  },
+  {
+    "id": "RC-007",
+    "date": "2026-05-25",
+    "description": "Session persisted to Redis on call start",
+    "expected": "Session retrievable by callSid from Redis",
+    "status": "pass"
+  },
+  {
+    "id": "RC-008",
+    "date": "2026-05-25",
+    "description": "CRM sync fires after call completion",
+    "expected": "HubSpot/Salesforce record updated within 10s",
+    "status": "pass"
+  }
+]

@@ -1,0 +1,77 @@
+[
+  {
+    "id": "gc_001",
+    "scenario": "outbound-qualification-success",
+    "path": "fast",
+    "transcript": [
+      { "role": "agent", "text": "Hi, this is Alex, an AI voice agent from Flawless. I'm calling about your recent inquiry. Is now a good time?" },
+      { "role": "prospect", "text": "Sure, go ahead." },
+      { "role": "agent", "text": "Great. Are you currently using any AI tools in your sales process?" },
+      { "role": "prospect", "text": "Yes, we use a couple of tools." },
+      { "role": "agent", "text": "What's your biggest challenge with them?" },
+      { "role": "prospect", "text": "Speed and accuracy, mainly." },
+      { "role": "agent", "text": "Got it. Do you have a budget allocated for improving this?" },
+      { "role": "prospect", "text": "Yes, we have budget for this quarter." },
+      { "role": "agent", "text": "Perfect. I'd love to connect you with our team. Would Tuesday or Wednesday work for a 20-minute call?" },
+      { "role": "prospect", "text": "Tuesday works." }
+    ],
+    "expected_outcome": "qualified",
+    "expected_handoff": false,
+    "expected_crm_sync": true,
+    "expected_turns": 10
+  },
+  {
+    "id": "gc_002",
+    "scenario": "outbound-qualification-not-interested",
+    "path": "fast",
+    "transcript": [
+      { "role": "agent", "text": "Hi, this is Alex, an AI voice agent from Flawless. Is now a good time?" },
+      { "role": "prospect", "text": "Not really, I'm not interested." },
+      { "role": "agent", "text": "Totally understand. Would it be okay if I followed up in a few months?" },
+      { "role": "prospect", "text": "No thanks." },
+      { "role": "agent", "text": "Of course, I'll make a note. Have a great day." }
+    ],
+    "expected_outcome": "not-interested",
+    "expected_handoff": false,
+    "expected_crm_sync": true,
+    "expected_turns": 5
+  },
+  {
+    "id": "gc_003",
+    "scenario": "handoff-human-requested",
+    "path": "deep",
+    "transcript": [
+      { "role": "agent", "text": "Hi, this is Alex, an AI voice agent. How can I help?" },
+      { "role": "prospect", "text": "Can I speak with a real person?" },
+      { "role": "agent", "text": "Of course! Let me connect you with a team member right away." }
+    ],
+    "expected_outcome": "handed-off",
+    "expected_handoff": true,
+    "expected_crm_sync": true,
+    "expected_turns": 3
+  },
+  {
+    "id": "gc_004",
+    "scenario": "fallback-latency-exceeded",
+    "path": "fallback",
+    "transcript": [
+      { "role": "agent", "text": "Hi, I'm experiencing a brief delay. Let me connect you with someone who can help right away." }
+    ],
+    "expected_outcome": "fallback",
+    "expected_handoff": true,
+    "expected_crm_sync": true,
+    "expected_turns": 1
+  },
+  {
+    "id": "gc_005",
+    "scenario": "compliance-ai-disclosure",
+    "path": "fast",
+    "notes": "First agent turn MUST contain AI disclosure",
+    "transcript": [
+      { "role": "agent", "text": "Hi, this is Alex, an AI voice agent from Flawless..." }
+    ],
+    "expected_ai_disclosure": true,
+    "expected_outcome": "compliant",
+    "expected_turns": 1
+  }
+]
