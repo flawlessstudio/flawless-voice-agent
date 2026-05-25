@@ -1,0 +1,29 @@
+name: Compliance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/compliance/**'
+      - 'docs/legal/**'
+      - 'registry/**'
+
+jobs:
+  compliance-check:
+    name: Compliance Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run compliance:check
+        env:
+          COMPLIANCE_MODE: strict
+          DNC_CHECK_ENABLED: 'true'
+          PII_REDACTION_ENABLED: 'true'
+          CONSENT_REQUIRED: 'true'

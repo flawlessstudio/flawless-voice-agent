@@ -1,0 +1,26 @@
+name: Registry
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'registry/**'
+      - 'schemas/**'
+
+jobs:
+  registry-audit:
+    name: Registry Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run registry:audit
+      - name: Upload audit log
+        uses: actions/upload-artifact@v4
+        with:
+          name: registry-audit-log
+          path: registry/audit-log.md
