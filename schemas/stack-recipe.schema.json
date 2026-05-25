@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "stack-recipe.schema.json",
+  "title": "StackRecipe",
+  "description": "Schema for a stack recipe",
+  "type": "object",
+  "required": ["id", "name", "description", "stack", "target"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "stack": {
+      "type": "object",
+      "description": "Layer-to-provider mapping"
+    },
+    "target": { "type": "string" },
+    "latency_budget_ms": { "type": "number" }
+  }
+}

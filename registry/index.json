@@ -1,0 +1,23 @@
+{
+  "name": "flawless-voice-agent-registry",
+  "version": "0.1.0",
+  "description": "Source-of-truth registry for the flawless-voice-agent stack",
+  "layers": [
+    "L1-telephony",
+    "L2-stt",
+    "L3-llm",
+    "L4-tts",
+    "L5-orchestration",
+    "L6-integration",
+    "L7-analytics-qa",
+    "L12-domain-vertical"
+  ],
+  "paths": {
+    "core": "./registry.core.json",
+    "watchlist": "./registry.watchlist.json",
+    "recipes": "./stack-recipes.json",
+    "taxonomy": "./taxonomy.md",
+    "auditLog": "./audit-log.md"
+  },
+  "schema": "../schemas/candidate.schema.json"
+}

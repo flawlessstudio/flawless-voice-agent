@@ -1,0 +1,73 @@
+{
+  "version": "0.1.0",
+  "status": "watchlist",
+  "description": "Strong candidates monitored for potential core promotion. Each entry must include a reason and competitive score.",
+  "candidates": [
+    {
+      "layer": "L1-telephony",
+      "name": "Vonage / Bandwidth",
+      "reason": "Alternative SIP/carrier providers with competitive pricing. Monitor for feature parity with Twilio.",
+      "score": 7
+    },
+    {
+      "layer": "L2-stt",
+      "name": "AssemblyAI",
+      "reason": "Strong accuracy and features. Slightly higher latency than Deepgram for real-time. Monitor for streaming improvements.",
+      "score": 8
+    },
+    {
+      "layer": "L2-stt",
+      "name": "Whisper (OpenAI)",
+      "reason": "High accuracy but not optimized for real-time streaming. Good for async transcription use cases.",
+      "score": 7
+    },
+    {
+      "layer": "L3-llm",
+      "name": "Anthropic Claude",
+      "reason": "Strong reasoning and safety. Lacks native Realtime API. Monitor for real-time voice capabilities.",
+      "score": 8
+    },
+    {
+      "layer": "L3-llm",
+      "name": "Gemini Live (Google)",
+      "reason": "Native multimodal real-time API. Competitive with OpenAI Realtime. Monitor for stability and ecosystem.",
+      "score": 8
+    },
+    {
+      "layer": "L4-tts",
+      "name": "OpenAI TTS",
+      "reason": "Good quality and easy integration with OpenAI stack. Less natural than ElevenLabs for commercial voice.",
+      "score": 7
+    },
+    {
+      "layer": "L4-tts",
+      "name": "Cartesia",
+      "reason": "Ultra-low latency TTS. Strong candidate for fast-path where speed matters more than naturalness.",
+      "score": 8
+    },
+    {
+      "layer": "L5-orchestration",
+      "name": "LiveKit Agents",
+      "reason": "Open-source, WebRTC-native, highly flexible. Strong for custom architectures. Less turnkey than Vapi.",
+      "score": 8
+    },
+    {
+      "layer": "L6-integration",
+      "name": "Pipedrive",
+      "reason": "Strong for sales-focused pipelines. Good API. Monitor for enterprise feature growth.",
+      "score": 7
+    },
+    {
+      "layer": "L7-analytics-qa",
+      "name": "Hamming",
+      "reason": "Specialized voice agent eval platform. Strong automated testing capabilities. Monitor for production readiness.",
+      "score": 8
+    },
+    {
+      "layer": "L7-analytics-qa",
+      "name": "Braintrust",
+      "reason": "Strong LLM eval platform with traces and human review. Good complement to custom eval layer.",
+      "score": 8
+    }
+  ]
+}

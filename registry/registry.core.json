@@ -1,0 +1,47 @@
+{
+  "version": "0.1.0",
+  "status": "core",
+  "description": "The frozen optimal stack. One winner per layer. Changes require explicit justification and eval evidence.",
+  "stack": {
+    "L1-telephony": {
+      "winner": "Twilio",
+      "reason": "Maximum maturity, outbound routing, compliance controls, SIP trunking, programmable voice. Best ecosystem for production voice at scale.",
+      "docs": "https://www.twilio.com/docs/voice"
+    },
+    "L2-stt": {
+      "winner": "Deepgram",
+      "reason": "Best-in-class latency for real-time streaming, stable WER, strong API for voice agents, direct integration with Twilio and WebRTC.",
+      "docs": "https://developers.deepgram.com"
+    },
+    "L3-llm": {
+      "winner": "OpenAI Realtime / Agents",
+      "reason": "Best base for real-time conversation, function calling, memory, multi-turn reasoning and controlled handoff. Realtime API eliminates STT/TTS round-trip.",
+      "docs": "https://platform.openai.com/docs/guides/realtime"
+    },
+    "L4-tts": {
+      "winner": "ElevenLabs",
+      "reason": "Best perceived naturalness and human-like voice quality for commercial outbound calls. Strong API and voice cloning support.",
+      "docs": "https://docs.elevenlabs.io"
+    },
+    "L5-orchestration": {
+      "winner": "Vapi + Retell AI",
+      "reason": "Vapi for fast flow and flexibility; Retell for phone automation depth. Combined they cover rapid iteration and production robustness.",
+      "docs": "https://docs.vapi.ai"
+    },
+    "L6-integration": {
+      "winner": "HubSpot + Salesforce",
+      "reason": "HubSpot covers SMB/commercial speed; Salesforce covers enterprise depth. Together they provide complete CRM coverage.",
+      "docs": "https://developers.hubspot.com"
+    },
+    "L7-analytics-qa": {
+      "winner": "Custom eval layer",
+      "reason": "Proprietary evaluation layer with traces, golden calls, human review, scorecards and regression suite. No single vendor covers all quality dimensions needed.",
+      "docs": "./eval/"
+    },
+    "L12-domain-vertical": {
+      "winner": "Case-dependent",
+      "reason": "Thoughtly for sales, Clara for recruiting, Vozy for qualification. Vertical layer is selected per use case, not globally.",
+      "docs": "./registry/layers/L12-domain-vertical.md"
+    }
+  }
+}

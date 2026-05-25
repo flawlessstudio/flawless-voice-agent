@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "candidate.schema.json",
+  "title": "Candidate",
+  "description": "Schema for a registry candidate entry",
+  "type": "object",
+  "required": ["layer", "name", "reason", "score"],
+  "properties": {
+    "layer": {
+      "type": "string",
+      "description": "Registry layer ID (e.g. L1-telephony)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Candidate name"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Justification for inclusion"
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Competitive score 0-10"
+    },
+    "docs": {
+      "type": "string",
+      "description": "Link to documentation"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["core", "watchlist", "deprecated", "experimental"]
+    }
+  }
+}

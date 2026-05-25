@@ -1,0 +1,53 @@
+{
+  "version": "0.1.0",
+  "recipes": [
+    {
+      "id": "fast-path",
+      "name": "Fast Path",
+      "description": "High-volume outbound qualification. Optimized for latency and throughput.",
+      "stack": {
+        "L1": "Twilio",
+        "L2": "Deepgram",
+        "L3": "OpenAI Realtime",
+        "L4": "ElevenLabs",
+        "L5": "Vapi",
+        "L6": "HubSpot",
+        "L7": "Custom eval layer"
+      },
+      "target": "Outbound sales qualification, appointment setting",
+      "latency_budget_ms": 800
+    },
+    {
+      "id": "deep-path",
+      "name": "Deep Path",
+      "description": "Complex conversations, objections, demos, renewals. Optimized for reasoning and conversion.",
+      "stack": {
+        "L1": "Twilio",
+        "L2": "Deepgram",
+        "L3": "OpenAI Agents + tools + memory",
+        "L4": "ElevenLabs",
+        "L5": "Retell AI + custom orchestration",
+        "L6": "Salesforce",
+        "L7": "Custom eval layer + human review"
+      },
+      "target": "Enterprise deals, renewals, complex support",
+      "latency_budget_ms": 1500
+    },
+    {
+      "id": "fallback-path",
+      "name": "Fallback Path",
+      "description": "Controlled degradation when fast/deep paths fail or time out. Routes to human or callback.",
+      "stack": {
+        "L1": "Twilio",
+        "L2": "Deepgram",
+        "L3": "Simplified prompt, no tools",
+        "L4": "ElevenLabs",
+        "L5": "Vapi fallback flow",
+        "L6": "HubSpot",
+        "L7": "Custom eval layer"
+      },
+      "target": "Circuit-broken scenarios, high-load degradation, edge cases",
+      "latency_budget_ms": 2000
+    }
+  ]
+}
