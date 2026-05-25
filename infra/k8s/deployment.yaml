@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flawless-voice-agent
+  labels:
+    app: flawless-voice-agent
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: flawless-voice-agent
+  template:
+    metadata:
+      labels:
+        app: flawless-voice-agent
+    spec:
+      containers:
+        - name: voice-agent
+          image: flawlessstudio/flawless-voice-agent:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: production
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
