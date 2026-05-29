@@ -11,9 +11,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── Job 1: lockfile drift ────────────────────────────────────────────────────
+  lockfile:
+    name: Lockfile drift check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install (ignore-scripts for speed)
+        run: npm ci --ignore-scripts
+
+      - name: Detect drift
+        run: |
+          npm install --package-lock-only --ignore-scripts 2>/dev/null
+          git diff --exit-code package-lock.json || \
+            (echo '::error::package-lock.json is out of sync with package.json — run npm install and commit the result' && exit 1)
+
+  # ── Job 2: lint + typecheck + test + build ───────────────────────────────────
   lint-and-test:
     name: Lint & Test
     runs-on: ubuntu-latest
+    needs: lockfile
     steps:
       - uses: actions/checkout@v4
 
@@ -47,3 +70,22 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # ── Job 3: npm audit (non-blocking, informational) ───────────────────────────
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    needs: lockfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Audit production deps
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true   # informational until baseline is clean
