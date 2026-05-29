@@ -1,0 +1,31 @@
+# Production docker-compose
+# Usage: docker-compose -f docker-compose.prod.yml up -d
+# Requires: .env with all vars from .env.example
+
+services:
+  voice-agent:
+    image: ghcr.io/flawlessstudio/flawless-voice-agent:latest
+    restart: unless-stopped
+    ports:
+      - "5050:5050"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5050/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M

@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/flawlessstudio/flawless-voice-agent/schemas/webhook-vapi.schema.json",
+  "title": "VapiWebhookEvent",
+  "type": "object",
+  "required": ["type"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["call-started", "call.started", "call-ended", "call.ended", "call-ringing", "transcript", "function-call", "end-of-call-report"]
+    },
+    "call": {
+      "type": "object",
+      "properties": {
+        "id":            { "type": "string" },
+        "status":        { "type": "string" },
+        "phoneNumberId": { "type": "string" }
+      }
+    },
+    "transcript":    { "type": "string" },
+    "endedReason":   { "type": "string" },
+    "functionCall": {
+      "type": "object",
+      "properties": {
+        "name":       { "type": "string" },
+        "parameters": { "type": "object" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "properties": {
+        "transcript":    { "type": "string" },
+        "recordingUrl":  { "type": "string", "format": "uri" },
+        "summary":       { "type": "string" }
+      }
+    }
+  }
+}

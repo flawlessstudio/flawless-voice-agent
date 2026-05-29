@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/flawlessstudio/flawless-voice-agent/schemas/voice-session.schema.json",
+  "title": "VoiceSession",
+  "description": "Runtime session object for a single voice call, persisted in memory and flushed to CRM on call end.",
+  "type": "object",
+  "required": ["sessionId", "startedAt", "audioEncoding", "sampleRate", "transcript", "path", "crm"],
+  "properties": {
+    "sessionId":     { "type": "string", "format": "uuid" },
+    "callSid":       { "type": ["string", "null"], "description": "Twilio CallSid" },
+    "externalCallId":{ "type": ["string", "null"], "description": "Vapi or Retell call ID" },
+    "contactId":     { "type": ["string", "null"], "description": "CRM contact ID" },
+    "audioEncoding": { "type": "string", "enum": ["mulaw", "pcm16"] },
+    "sampleRate":    { "type": "integer", "enum": [8000, 16000, 24000] },
+    "transcript": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["speaker", "text", "ts"],
+        "properties": {
+          "speaker":    { "type": "string", "enum": ["agent", "user"] },
+          "text":       { "type": "string", "minLength": 1 },
+          "ts":         { "type": "integer", "description": "Unix timestamp ms" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "intent":    { "type": ["string", "null"], "enum": ["qualify", "schedule", "support", "objection", "handoff", "other", null] },
+    "summary":   { "type": ["string", "null"] },
+    "sentiment": { "type": ["string", "null"], "enum": ["positive", "neutral", "negative", null] },
+    "outcome":   { "type": ["string", "null"], "enum": ["success", "callback", "not_interested", "transferred", "voicemail", "no_answer", null] },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "endedAt":   { "type": ["string", "null"], "format": "date-time" },
+    "durationMs":{ "type": ["integer", "null"], "minimum": 0 },
+    "path":      { "type": "string", "enum": ["fast", "deep", "fallback"] },
+    "crm": {
+      "type": "object",
+      "properties": {
+        "hubspot":    {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "object", "required": ["callId", "synced"], "properties": { "callId": { "type": "string" }, "synced": { "type": "boolean" } } }
+          ]
+        },
+        "salesforce": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "object", "required": ["voiceCallId", "synced"], "properties": { "voiceCallId": { "type": "string" }, "synced": { "type": "boolean" } } }
+          ]
+        }
+      }
+    }
+  }
+}

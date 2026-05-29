@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/flawlessstudio/flawless-voice-agent/schemas/webhook-retell.schema.json",
+  "title": "RetellWebhookEvent",
+  "type": "object",
+  "required": ["event", "call_id"],
+  "properties": {
+    "event":    { "type": "string", "enum": ["call_started", "call_ended", "call_analyzed"] },
+    "call_id":  { "type": "string" },
+    "agent_id": { "type": "string" },
+    "call": {
+      "type": "object",
+      "properties": {
+        "call_id":          { "type": "string" },
+        "call_status":      { "type": "string" },
+        "start_timestamp":  { "type": "integer" },
+        "end_timestamp":    { "type": "integer" },
+        "duration_ms":      { "type": "integer" },
+        "from_number":      { "type": "string" },
+        "to_number":        { "type": "string" },
+        "transcript":       { "type": "string" },
+        "transcript_object":{
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role":    { "type": "string", "enum": ["agent", "user"] },
+              "content": { "type": "string" }
+            }
+          }
+        },
+        "call_analysis": {
+          "type": "object",
+          "properties": {
+            "call_summary":         { "type": "string" },
+            "user_sentiment":       { "type": "string", "enum": ["Positive", "Neutral", "Negative"] },
+            "call_successful":      { "type": "boolean" },
+            "custom_analysis_data": { "type": "object" }
+          }
+        }
+      }
+    }
+  }
+}
