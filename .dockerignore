@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build output (rebuilt in Docker)
+dist/
+
+# Environment files — NEVER in image
+.env
+.env.*
+!.env.example
+
+# Dev & test files
+coverage/
+tests/
+*.test.ts
+*.spec.ts
+jest.config.*
+
+# Logs
+*.log
+logs/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docs (not needed in runtime image)
+docs/
+README.md
+CHANGELOG.md
+CONTRIBUTING.md

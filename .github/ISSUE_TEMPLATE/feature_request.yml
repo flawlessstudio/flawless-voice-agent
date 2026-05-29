@@ -1,0 +1,54 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement!
+
+  - type: input
+    id: title
+    attributes:
+      label: Feature title
+      description: Short, descriptive title
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description: What problem does this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Affected layer
+      options:
+        - telephony (Twilio)
+        - stt (Deepgram)
+        - llm (OpenAI)
+        - tts (ElevenLabs)
+        - orchestration (Vapi / Retell)
+        - integrations (HubSpot / Salesforce)
+        - runtime / session
+        - CI/CD / infra
+        - docs
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

@@ -1,0 +1,12 @@
+# Global owner — reviews required on all PRs
+* @flawlessstudio
+
+# Telephony layer
+src/telephony/ @flawlessstudio
+
+# CRM integrations
+src/integrations/ @flawlessstudio
+
+# CI/CD
+.github/ @flawlessstudio
+Dockerfile @flawlessstudio

@@ -1,31 +1,16 @@
-# Product Freeze — v0.1.0
+# Frozen Decisions
 
-**Date**: 2026-05-25
-**Status**: In progress
+These decisions are locked for v0.1.0. Changes require a new ADR (Architecture Decision Record).
 
-## Core frozen
-
-| Layer | Winner | Frozen |
+| # | Decision | Rationale |
 |---|---|---|
-| L1 — Telephony | Twilio | ✅ |
-| L2 — STT | Deepgram | ✅ |
-| L3 — LLM | OpenAI Realtime / Agents | ✅ |
-| L4 — TTS | ElevenLabs | ✅ |
-| L5 — Orchestration | Vapi + Retell AI | ✅ |
-| L6 — Integration | HubSpot + Salesforce | ✅ |
-| L7 — Analytics/QA | Custom eval layer | ✅ |
-
-## Gates passed
-
-- [ ] Functional: call, conversation, CRM sync, handoff
-- [ ] Quality: latency p95 < 1200ms, WER < 5%
-- [ ] Compliance: AI disclosure 100%, DNC 100%, PII redaction 100%
-- [ ] Scalability: 10k concurrent calls
-- [ ] Release: docs final, registry consistent, runbooks live
-
-## Re-audit cadence
-
-- Registry review: every 30 days.
-- Compliance audit: every 90 days.
-- Load test: before every major release.
-- Golden call refresh: every 60 days.
+| 1 | Node.js 20 + TypeScript ESM | LTS, native fetch, ESM-first |
+| 2 | Fastify over Express | 3x faster, native TypeScript, WebSocket plugin |
+| 3 | OpenAI Realtime as primary LLM path | Lowest latency, VAD server-side, native audio |
+| 4 | g711_ulaw for Twilio audio | Direct Twilio format, no transcoding |
+| 5 | Non-blocking CRM sync | Audio must never wait for CRM writes |
+| 6 | Dual CRM (HubSpot + Salesforce) | Activated by env vars, independent failures |
+| 7 | HMAC validation on all webhooks | Security baseline, non-negotiable |
+| 8 | Multi-stage Docker, non-root user | Security baseline |
+| 9 | Jest + ts-jest for tests | Native TypeScript, no transpile step |
+| 10 | ghcr.io for container registry | Free, integrated with GitHub Actions |

@@ -2,57 +2,57 @@
 
 ## Prerequisites
 
-- Node.js >= 20
-- Docker + Docker Compose
-- A `.env` file based on `.env.example`
+- Node.js 20+ (use `.nvmrc`: `nvm use`)
+- ngrok account (free tier works)
+- Twilio account with a phone number
+- OpenAI API key with Realtime access
 
-## Quick start
+## Setup
 
 ```bash
 # 1. Clone
 git clone https://github.com/flawlessstudio/flawless-voice-agent.git
 cd flawless-voice-agent
 
-# 2. Install dependencies
+# 2. Install
 npm install
 
-# 3. Copy env
+# 3. Configure
 cp .env.example .env
-# Fill in your API keys in .env
+# Edit .env with your real keys
 
-# 4. Start Redis + app
-npm run docker:up
+# 4. Start tunnel
+ngrok http 5050
+# Copy the https:// URL → paste as PUBLIC_URL in .env
 
-# OR run just Redis via Docker and app locally:
-docker-compose up redis -d
+# 5. Configure Twilio Console
+# Phone Numbers > Active Numbers > your number
+# “A call comes in”: POST https://xxxx.ngrok-free.app/incoming-call
+# Status Callback:   POST https://xxxx.ngrok-free.app/status
+
+# 6. Start dev server
 npm run dev
 ```
 
-## Run tests
+## Available scripts
 
-```bash
-npm run test:unit
-npm run test:integration
-npm run test:e2e
-```
+| Script | Description |
+|---|---|
+| `npm run dev` | Hot-reload dev server (tsx watch) |
+| `npm run build` | Compile TypeScript to `dist/` |
+| `npm start` | Run compiled production build |
+| `npm run lint` | ESLint check |
+| `npm run typecheck` | TypeScript type check (no emit) |
+| `npm test` | Jest unit tests |
+| `npm test -- --coverage` | Tests with coverage report |
 
-## Run eval
+## Endpoints
 
-```bash
-npm run eval:smoke
-npm run eval:regression
-```
-
-## Run load test
-
-```bash
-# Make sure app is running first
-CONCURRENCY=100 TARGET_URL=http://localhost:3000 npm run test:load
-```
-
-## Expose locally via ngrok (for Twilio webhooks)
-
-```bash
-ngrok http 3000
-# Copy the HTTPS URL and set it in Twilio console as webhook
-```
+| Method | Path | Description |
+|---|---|---|
+| POST | `/incoming-call` | Twilio webhook → TwiML |
+| WS | `/media-stream` | Twilio ↔ OpenAI audio bridge |
+| POST | `/status` | Twilio status callback |
+| POST | `/webhooks/vapi` | Vapi event webhook |
+| POST | `/webhooks/retell` | Retell event webhook |
+| GET | `/health` | Health check |

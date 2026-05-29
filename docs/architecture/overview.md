@@ -1,48 +1,46 @@
 # Architecture Overview
 
-## Dual-path hybrid architecture
+## System Summary
 
-The flawless-voice-agent uses a **dual-path hybrid architecture** with three routes:
+Flawless Voice Agent is a hybrid voice AI platform built on a 6-layer architecture. It bridges telephony (Twilio) with AI processing (Deepgram, OpenAI, ElevenLabs) and CRM synchronisation (HubSpot, Salesforce) via orchestration platforms (Vapi, Retell).
 
-1. **Fast path**: optimized for latency and throughput
-2. **Deep path**: optimized for reasoning and conversion
-3. **Fallback path**: controlled degradation to human or callback
-
-## Layer map
+## Layer Map
 
 ```
-Twilio (L1)
-  │
-  ├── Deepgram STT (L2)
-  │     │
-  │     ├── [Fast] OpenAI Realtime (L3) → ElevenLabs (L4) → Vapi (L5) → HubSpot (L6)
-  │     │
-  │     ├── [Deep] OpenAI Agents + tools (L3) → ElevenLabs (L4) → Retell (L5) → Salesforce (L6)
-  │     │
-  │     └── [Fallback] Minimal LLM (L3) → ElevenLabs (L4) → Vapi fallback (L5) → HubSpot (L6)
-  │
-  └── Custom eval + QA layer (L7)
+L1  Twilio          — telephony, MediaStream WebSocket, call lifecycle
+L2  Deepgram        — STT (nova-3) or full Voice Agent (STT+LLM+TTS)
+L3  OpenAI Realtime — LLM reasoning, tool calling, VAD server-side
+L4  ElevenLabs      — TTS streaming or Conversational AI agent
+L5  Vapi / Retell   — orchestration, outbound dialling, webhook routing
+L6  HubSpot / SF    — CRM engagement, transcript, contact association
 ```
 
-## Routing logic
+## Call Paths
 
-- Default route is **fast path**.
-- Switch to **deep path** when: complexity score > threshold, objection detected, deal value high.
-- Switch to **fallback path** when: latency budget exceeded, circuit breaker open, error rate > threshold.
+| Path     | Latency  | Stack                                  |
+|----------|----------|----------------------------------------|
+| fast     | ~860ms   | Twilio → OpenAI Realtime → CRM         |
+| deep     | ~1.700ms | Twilio → Deepgram → OpenAI → ElevenLabs → CRM |
+| fallback | varies   | Vapi / Retell managed                  |
 
-## Scalability
+## Data Flow
 
-- Each layer is a separate deployable unit.
-- Telephony is the front door only — no business logic.
-- Audio streaming via WebRTC or low-latency transport.
-- LLM/TTS in horizontal worker pools.
-- Session state in external store.
-- CRM/analytics async via event queues.
+```
+Incoming call
+  → POST /incoming-call → TwiML <Connect><Stream>
+  → WS /media-stream
+      ↔ OpenAI Realtime (audio g711_ulaw bidirectional)
+          → transcript accumulated in SessionStore
+          → tool call: log_to_crm
+              → syncCallToHubSpot()   [non-blocking]
+              → syncCallToSalesforce() [non-blocking]
+  → POST /status (call ended)
+```
 
-## See also
+## Key Design Decisions
 
-- [Fast path](./fast-path.md)
-- [Deep path](./deep-path.md)
-- [Fallback path](./fallback-path.md)
-- [Scaling 10k](./scaling-10k.md)
-- [Compliance](./compliance.md)
+- **Non-blocking CRM sync**: CRM writes never block the audio path.
+- **Fire-and-forget tool calls**: OpenAI gets `function_call_output` immediately.
+- **Dual CRM**: Both HubSpot and Salesforce activate independently based on env vars.
+- **OAuth2 auto-refresh**: Salesforce token refresh is transparent and automatic.
+- **Signature validation**: Twilio (HMAC-SHA1) and Retell (HMAC-SHA256) verified on every webhook.

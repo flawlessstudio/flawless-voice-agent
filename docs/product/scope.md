@@ -1,30 +1,29 @@
 # Product Scope
 
-## Mission
+## What this is
 
-Build the optimal hybrid voice agent platform that is the best in the market across all dimensions: naturalness, reasoning, reliability, compliance, scalability and operability.
+A production-ready voice AI agent backend that handles inbound and outbound phone calls, processes speech with AI, and synchronises call data to CRM systems.
 
-## Use cases in scope
+## What this is NOT
 
-- Outbound sales qualification
-- Outbound appointment setting
-- Outbound renewal saves
-- Inbound triage and routing
+- A frontend or dashboard
+- A call centre platform
+- A replacement for human agents in complex scenarios
 
-## Out of scope (v0.1)
-
-- Inbound full support resolution
-- Video agents
-- Non-voice channels (chat, email)
-
-## Success metrics
+## Success metrics (v0.1.0)
 
 | Metric | Target |
 |---|---|
-| End-to-end latency (fast path) | < 800ms |
-| End-to-end latency (deep path) | < 1500ms |
-| Transcript accuracy (WER) | < 5% |
-| Handoff success rate | > 98% |
-| CRM sync success rate | > 99.5% |
-| Concurrent calls supported | 10k |
-| Compliance gate pass rate | 100% |
+| Fast path latency | < 1.000ms end-to-end |
+| CRM sync success rate | > 99% |
+| Twilio signature validation | 100% of webhooks |
+| Test coverage | ≥ 60% lines |
+| Zero secrets in git | Required |
+
+## Out of scope (v0.1.0)
+
+- Redis session persistence
+- Multi-tenant support
+- Call recording storage
+- Real-time dashboard
+- Load balancing
