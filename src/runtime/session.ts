@@ -1,80 +1,42 @@
-import { createClient, RedisClientType } from 'redis';
-import { logger } from '../analytics/logger';
-
-export interface CallSession {
-  sessionId: string;
-  callSid: string;
-  startedAt: string;
-  endedAt?: string;
-  path: 'fast' | 'deep' | 'fallback';
-  status: 'active' | 'completed' | 'failed' | 'handed-off';
-  turns: number;
-  complexityScore: number;
-  consentCaptured: boolean;
-  crmSynced: boolean;
-  latencyP95Ms?: number;
+export interface Utterance {
+  speaker: 'agent' | 'user';
+  text: string;
+  ts: number;
 }
 
-let redis: RedisClientType | null = null;
+export interface CRMState {
+  hubspot: { callId: string; synced: boolean } | null;
+  salesforce: { voiceCallId: string; synced: boolean } | null;
+}
 
-async function getRedis(): Promise<RedisClientType> {
-  if (!redis) {
-    redis = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' }) as RedisClientType;
-    redis.on('error', (err) => logger.error({ err }, 'Redis error'));
-    await redis.connect();
+export class SessionStore {
+  callSid: string | null = null;
+  startedAt: string = new Date().toISOString();
+  endedAt: string | null = null;
+  transcript: Utterance[] = [];
+  crm: CRMState = { hubspot: null, salesforce: null };
+
+  setCallSid(sid: string): void {
+    this.callSid = sid;
   }
-  return redis;
-}
 
-const TTL_SECONDS = 3600; // 1 hour
+  addUtterance(speaker: 'agent' | 'user', text: string): void {
+    this.transcript.push({ speaker, text, ts: Date.now() });
+  }
 
-export const SessionStore = {
-  create(callSid: string): CallSession {
+  end(): void {
+    this.endedAt = new Date().toISOString();
+    const dur = new Date(this.endedAt).getTime() - new Date(this.startedAt).getTime();
+    console.log(`[session] ended. duration=${Math.round(dur / 1000)}s turns=${this.transcript.length}`);
+  }
+
+  toJSON() {
     return {
-      sessionId: `sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      callSid,
-      startedAt: new Date().toISOString(),
-      path: 'fast',
-      status: 'active',
-      turns: 0,
-      complexityScore: 0,
-      consentCaptured: false,
-      crmSynced: false,
+      callSid: this.callSid,
+      startedAt: this.startedAt,
+      endedAt: this.endedAt,
+      transcript: this.transcript,
+      crm: this.crm,
     };
-  },
-
-  async save(session: CallSession): Promise<void> {
-    try {
-      const r = await getRedis();
-      await r.setEx(`session:${session.callSid}`, TTL_SECONDS, JSON.stringify(session));
-    } catch (e) {
-      logger.warn({ err: e }, 'Session save failed — in-memory fallback');
-    }
-  },
-
-  async get(callSid: string): Promise<CallSession | null> {
-    try {
-      const r = await getRedis();
-      const raw = await r.get(`session:${callSid}`);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  },
-
-  async update(callSid: string, patch: Partial<CallSession>): Promise<void> {
-    const existing = await SessionStore.get(callSid);
-    if (existing) {
-      await SessionStore.save({ ...existing, ...patch });
-    }
-  },
-
-  async delete(callSid: string): Promise<void> {
-    try {
-      const r = await getRedis();
-      await r.del(`session:${callSid}`);
-    } catch (e) {
-      logger.warn({ err: e }, 'Session delete failed');
-    }
-  },
-};
+  }
+}
