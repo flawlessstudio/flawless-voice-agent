@@ -1,20 +1,39 @@
+/**
+ * toolHandler.ts — OpenAI Realtime tool call dispatcher
+ *
+ * Handles all function_call_arguments.done events from OpenAI.
+ * Each tool name maps to a handler that runs non-blocking.
+ * Always responds to OpenAI immediately to unblock the audio thread.
+ *
+ * Tools registered here must match the session config in src/llm/openai.ts:
+ *  - log_to_crm
+ *  - check_availability
+ *  - transfer_call
+ */
+
 import type WebSocket from 'ws';
 import type { SessionStore } from '../runtime/session.js';
-import { syncCallToHubSpot } from '../integrations/hubspot.js';
+import { syncCallToHubSpot }   from '../integrations/hubspot.js';
 import { syncCallToSalesforce } from '../integrations/salesforce.js';
+import { routeHandoff }         from './handoff.js';
 
 interface ToolCallMessage {
-  call_id: string;
-  name: string;
+  call_id:   string;
+  name:      string;
   arguments: string;
 }
 
 interface LogToCRMArgs {
   contact_name?: string;
-  intent: string;
+  intent:        string;
+  summary:       string;
+  outcome:       string;
+  contact_id?:   string;
+}
+
+interface TransferCallArgs {
+  reason:  string;
   summary: string;
-  outcome: string;
-  contact_id?: string;
 }
 
 export function handleToolCall(
@@ -23,17 +42,32 @@ export function handleToolCall(
   session: SessionStore
 ): void {
   const { call_id, name, arguments: rawArgs } = msg;
-  let args: LogToCRMArgs = { intent: 'other', summary: '', outcome: 'callback' };
-  try { args = JSON.parse(rawArgs) as LogToCRMArgs; } catch { /* ignore */ }
+  console.log(`[tool] ${name}`, rawArgs);
 
-  console.log(`[tool] ${name}`, args);
+  // Always ACK immediately — never block the audio thread
+  const ack = (output: Record<string, unknown> = { success: true }) => {
+    openAiWs.send(JSON.stringify({
+      type: 'conversation.item.create',
+      item: {
+        type:    'function_call_output',
+        call_id,
+        output:  JSON.stringify(output),
+      },
+    }));
+    openAiWs.send(JSON.stringify({ type: 'response.create' }));
+  };
 
+  // ── log_to_crm ────────────────────────────────────────────────────────────
   if (name === 'log_to_crm') {
-    const endedAt = new Date().toISOString();
+    let args: LogToCRMArgs = { intent: 'other', summary: '', outcome: 'callback' };
+    try { args = JSON.parse(rawArgs) as LogToCRMArgs; } catch { /* ignore */ }
+
+    const endedAt    = new Date().toISOString();
     const durationMs = new Date(endedAt).getTime() - new Date(session.startedAt).getTime();
     const fromNumber = process.env.TWILIO_PHONE_NUMBER ?? '';
 
-    // ── HubSpot sync (non-blocking) ──────────────────────────────────────────
+    if (args.contact_id) session.setContactId(args.contact_id);
+
     if (process.env.HUBSPOT_ACCESS_TOKEN) {
       syncCallToHubSpot({
         payload: {
@@ -51,7 +85,7 @@ export function handleToolCall(
       })
         .then(({ callId }) => {
           session.crm.hubspot = { callId, synced: true };
-          console.log(`[crm] HubSpot synced. callId=${callId}`);
+          console.log(`[crm] HubSpot synced: callId=${callId}`);
         })
         .catch((err: Error) => {
           console.error(`[crm] HubSpot sync failed: ${err.message}`);
@@ -59,7 +93,6 @@ export function handleToolCall(
         });
     }
 
-    // ── Salesforce sync (non-blocking) ───────────────────────────────────────
     if (process.env.SALESFORCE_INSTANCE_URL && process.env.SALESFORCE_ACCESS_TOKEN) {
       syncCallToSalesforce({
         payload: {
@@ -79,7 +112,7 @@ export function handleToolCall(
       })
         .then(({ voiceCallId }) => {
           session.crm.salesforce = { voiceCallId, synced: true };
-          console.log(`[crm] Salesforce synced. voiceCallId=${voiceCallId}`);
+          console.log(`[crm] Salesforce synced: voiceCallId=${voiceCallId}`);
         })
         .catch((err: Error) => {
           console.error(`[crm] Salesforce sync failed: ${err.message}`);
@@ -87,15 +120,30 @@ export function handleToolCall(
         });
     }
 
-    // ── Respond to OpenAI immediately (never block audio) ────────────────────
-    openAiWs.send(JSON.stringify({
-      type: 'conversation.item.create',
-      item: {
-        type: 'function_call_output',
-        call_id,
-        output: JSON.stringify({ success: true }),
-      },
-    }));
-    openAiWs.send(JSON.stringify({ type: 'response.create' }));
+    ack({ success: true });
+    return;
   }
+
+  // ── transfer_call ─────────────────────────────────────────────────────────
+  if (name === 'transfer_call') {
+    let args: TransferCallArgs = { reason: 'user_requested_human', summary: '' };
+    try { args = JSON.parse(rawArgs) as TransferCallArgs; } catch { /* ignore */ }
+
+    // ACK immediately, then route handoff async
+    ack({ success: true, message: 'Transferring now.' });
+
+    routeHandoff(args.reason, args.summary, session.toJSON())
+      .then((result) => {
+        console.log(`[handoff] Result: success=${result.success} target=${result.target.type}`);
+      })
+      .catch((err: Error) => {
+        console.error(`[handoff] Failed: ${err.message}`);
+      });
+
+    return;
+  }
+
+  // ── unknown tool ──────────────────────────────────────────────────────────
+  console.warn(`[tool] Unknown tool: ${name}`);
+  ack({ success: false, error: `Unknown tool: ${name}` });
 }

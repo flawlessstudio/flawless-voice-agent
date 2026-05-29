@@ -13,8 +13,8 @@
 
 import type { VoiceSessionJSON } from '../runtime/session.js';
 import { analyzeTranscript } from './analyzer.js';
-import { syncToHubspot } from '../integrations/hubspot.js';
-import { syncToSalesforce } from '../integrations/salesforce.js';
+import { syncCallToHubSpot }   from '../integrations/hubspot.js';
+import { syncCallToSalesforce } from '../integrations/salesforce.js';
 
 export async function flushSessionToCRM(session: VoiceSessionJSON): Promise<void> {
   if (!session.transcript || session.transcript.length < 2) {
@@ -30,32 +30,63 @@ export async function flushSessionToCRM(session: VoiceSessionJSON): Promise<void
     const analysis = await analyzeTranscript(session.transcript);
     enriched = {
       ...session,
-      intent:    analysis.intent,
-      summary:   analysis.summary,
-      sentiment: analysis.sentiment,
-      outcome:   analysis.outcome,
+      intent:     analysis.intent,
+      summary:    analysis.summary,
+      sentiment:  analysis.sentiment,
+      outcome:    analysis.outcome,
+      nextAction: analysis.nextAction,
+      keyFacts:   analysis.keyFacts,
     };
     console.log(`[crm-enricher] Analysis done: intent=${analysis.intent} sentiment=${analysis.sentiment}`);
   } catch (err) {
     console.error('[crm-enricher] Analysis failed, syncing raw session:', (err as Error).message);
   }
 
+  const fromNumber  = process.env.TWILIO_PHONE_NUMBER ?? '';
+  const durationMs  = enriched.durationMs ?? 0;
+
   // Step 2: Sync to CRM(s) in parallel
   const tasks: Promise<void>[] = [];
 
   if (process.env.HUBSPOT_ACCESS_TOKEN) {
     tasks.push(
-      syncToHubspot(enriched).catch((err: Error) =>
-        console.error('[crm-enricher] HubSpot sync failed:', err.message)
-      )
+      syncCallToHubSpot({
+        payload: {
+          callSid:     enriched.callSid ?? 'unknown',
+          fromNumber,
+          toNumber:    '',
+          durationMs,
+          summary:     enriched.summary  ?? '',
+          intent:      enriched.intent   ?? 'other',
+          outcome:     enriched.outcome  ?? 'callback',
+        },
+        utterances: enriched.transcript,
+        contactId:  enriched.contactId,
+      })
+        .then(({ callId }) => console.log(`[crm-enricher] HubSpot synced: callId=${callId}`))
+        .catch((err: Error) => console.error('[crm-enricher] HubSpot sync failed:', err.message))
     );
   }
 
   if (process.env.SALESFORCE_INSTANCE_URL && process.env.SALESFORCE_ACCESS_TOKEN) {
     tasks.push(
-      syncToSalesforce(enriched).catch((err: Error) =>
-        console.error('[crm-enricher] Salesforce sync failed:', err.message)
-      )
+      syncCallToSalesforce({
+        payload: {
+          callSid:         enriched.callSid ?? 'unknown',
+          fromNumber,
+          toNumber:        '',
+          startTime:       enriched.startedAt,
+          endTime:         enriched.endedAt ?? new Date().toISOString(),
+          durationSeconds: Math.round(durationMs / 1000),
+          summary:         enriched.summary  ?? '',
+          intent:          enriched.intent   ?? 'other',
+          outcome:         enriched.outcome  ?? 'callback',
+        },
+        utterances: enriched.transcript,
+        contactId:  enriched.contactId,
+      })
+        .then(({ voiceCallId }) => console.log(`[crm-enricher] Salesforce synced: voiceCallId=${voiceCallId}`))
+        .catch((err: Error) => console.error('[crm-enricher] Salesforce sync failed:', err.message))
     );
   }
 
