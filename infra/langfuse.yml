@@ -1,0 +1,46 @@
+# Langfuse self-hosted — docker-compose service
+# Append to docker-compose.prod.yml or run standalone
+# Source: https://langfuse.com/docs/deployment/self-host
+#
+# After starting:
+#   1. Open http://localhost:3000
+#   2. Create project → copy Secret Key + Public Key
+#   3. Set in .env:
+#      LANGFUSE_SECRET_KEY=sk-lf-...
+#      LANGFUSE_PUBLIC_KEY=pk-lf-...
+#      LANGFUSE_HOST=http://localhost:3000
+
+services:
+  langfuse-server:
+    image: langfuse/langfuse:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL:          postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      NEXTAUTH_SECRET:       change-me-in-production-32-chars
+      SALT:                  change-me-in-production-32-chars
+      NEXTAUTH_URL:          http://localhost:3000
+      TELEMETRY_ENABLED:     "false"   # GDPR: disable telemetry
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+
+  langfuse-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     langfuse
+      POSTGRES_PASSWORD: langfuse
+      POSTGRES_DB:       langfuse
+    volumes:
+      - langfuse-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  langfuse-db-data:
