@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/flawlessstudio/flawless-voice-agent/schemas/post-call-analysis.schema.json",
+  "title": "PostCallAnalysis",
+  "description": "Structured output of the post-call LLM analysis. Produced by src/post-call/analyzer.ts after every completed call.",
+  "type": "object",
+  "required": ["intent", "summary", "sentiment", "outcome"],
+  "properties": {
+    "intent": {
+      "type": "string",
+      "enum": ["qualify", "schedule", "support", "objection", "handoff", "other"],
+      "description": "Primary intent detected during the call"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 20,
+      "description": "2-3 sentence factual summary of the call"
+    },
+    "sentiment": {
+      "type": "string",
+      "enum": ["positive", "neutral", "negative"],
+      "description": "Overall user sentiment"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": ["success", "callback", "not_interested", "transferred", "voicemail", "no_answer"],
+      "description": "Final call outcome"
+    },
+    "nextAction": {
+      "type": "string",
+      "description": "Recommended next action for the sales/support team"
+    },
+    "keyFacts": {
+      "type": "array",
+      "maxItems": 5,
+      "items": { "type": "string" },
+      "description": "Key facts extracted: name, company, need, budget, deadline"
+    }
+  }
+}
