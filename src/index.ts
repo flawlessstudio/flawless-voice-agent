@@ -6,6 +6,7 @@ import { incomingCallRoute } from './telephony/incoming.js';
 import { mediaStreamRoute } from './telephony/mediaStream.js';
 import { statusRoute } from './telephony/status.js';
 import { healthRoute } from './api/health.js';
+import { webhookRoutes } from './api/webhooks.js';
 
 config();
 
@@ -19,12 +20,15 @@ app.register(incomingCallRoute);
 app.register(mediaStreamRoute);
 app.register(statusRoute);
 app.register(healthRoute);
+app.register(webhookRoutes);
 
 app.listen({ port: PORT, host: '0.0.0.0' }, (err) => {
   if (err) { console.error(err); process.exit(1); }
   console.log(`[flawless-voice-agent] Listening on :${PORT}`);
-  console.log('  POST /incoming-call  → TwiML webhook');
-  console.log('  WS   /media-stream   → Twilio ↔ OpenAI bridge');
-  console.log('  POST /status         → call status callback');
-  console.log('  GET  /health         → health check');
+  console.log('  POST /incoming-call      → TwiML webhook');
+  console.log('  WS   /media-stream       → Twilio ↔ OpenAI bridge');
+  console.log('  POST /status             → Twilio status callback');
+  console.log('  POST /webhooks/vapi      → Vapi events');
+  console.log('  POST /webhooks/retell    → Retell events');
+  console.log('  GET  /health             → health check');
 });

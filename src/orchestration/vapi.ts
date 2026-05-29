@@ -1,29 +1,168 @@
-import { logger } from '../analytics/logger';
+/**
+ * Vapi Orchestration Integration
+ * Docs: https://docs.vapi.ai
+ * Auth: Authorization: Bearer VAPI_API_KEY
+ * Base: https://api.vapi.ai
+ */
 
-const VAPI_BASE = 'https://api.vapi.ai';
+const BASE = 'https://api.vapi.ai';
 
-export async function createVapiCall(params: {
-  phoneNumberId: string;
-  to: string;
-  assistantId: string;
-}): Promise<{ id: string }> {
-  const res = await fetch(`${VAPI_BASE}/call`, {
+function headers() {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${process.env.VAPI_API_KEY ?? ''}`,
+  };
+}
+
+async function vapiPost(path: string, body: unknown): Promise<unknown> {
+  const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.VAPI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      phoneNumberId: params.phoneNumberId,
-      customer: { number: params.to },
-      assistantId: params.assistantId,
-    }),
+    headers: headers(),
+    body: JSON.stringify(body),
   });
+  if (!res.ok) throw new Error(`Vapi POST ${path} → ${res.status}: ${await res.text()}`);
+  return res.json();
+}
 
-  if (!res.ok) {
-    logger.error({ status: res.status }, 'Vapi call creation failed');
-    throw new Error(`Vapi error: ${res.status}`);
+async function vapiGet(path: string): Promise<unknown> {
+  const res = await fetch(`${BASE}${path}`, { headers: headers() });
+  if (!res.ok) throw new Error(`Vapi GET ${path} → ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+async function vapiPatch(path: string, body: unknown): Promise<unknown> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'PATCH',
+    headers: headers(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Vapi PATCH ${path} → ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface VapiOutboundCall {
+  phoneNumberId: string;   // imported Twilio number ID in Vapi
+  toNumber:      string;   // destination E.164
+  assistantId?:  string;   // pre-created assistant ID
+  assistant?:    Record<string, unknown>; // inline assistant config
+  metadata?:     Record<string, string>;
+}
+
+export interface VapiWebhookEvent {
+  type:    string;
+  call?:   { id: string; status: string; phoneNumberId: string };
+  message?: Record<string, unknown>;
+  transcript?: string;
+  functionCall?: { name: string; parameters: Record<string, unknown> };
+  endedReason?: string;
+  artifact?: {
+    transcript: string;
+    recordingUrl?: string;
+    summary?: string;
+  };
+}
+
+// ── 1. Create outbound call ──────────────────────────────────────────────────
+
+export async function createVapiCall(params: VapiOutboundCall): Promise<{ id: string }> {
+  const body: Record<string, unknown> = {
+    phoneNumberId: params.phoneNumberId,
+    customer: { number: params.toNumber },
+  };
+  if (params.assistantId) body.assistantId = params.assistantId;
+  if (params.assistant)   body.assistant   = params.assistant;
+  if (params.metadata)    body.metadata     = params.metadata;
+
+  const data = await vapiPost('/call', body) as { id: string };
+  console.log(`[vapi] Call created: ${data.id}`);
+  return data;
+}
+
+// ── 2. Get call details ──────────────────────────────────────────────────────
+
+export async function getVapiCall(callId: string): Promise<unknown> {
+  return vapiGet(`/call/${callId}`);
+}
+
+// ── 3. Import Twilio number into Vapi ─────────────────────────────────────────
+
+export async function importTwilioNumber(params: {
+  twilioAccountSid:  string;
+  twilioAuthToken:   string;
+  phoneNumber:       string;
+  serverUrl?:        string;
+}): Promise<{ id: string }> {
+  const data = await vapiPost('/phone-number/import', {
+    provider:          'twilio',
+    twilioAccountSid:  params.twilioAccountSid,
+    twilioAuthToken:   params.twilioAuthToken,
+    number:            params.phoneNumber,
+    ...(params.serverUrl ? { serverUrl: params.serverUrl } : {}),
+  }) as { id: string };
+  console.log(`[vapi] Twilio number imported: ${data.id}`);
+  return data;
+}
+
+// ── 4. Update phone number server URL ──────────────────────────────────────
+
+export async function updatePhoneNumberServer(
+  phoneNumberId: string,
+  serverUrl: string
+): Promise<void> {
+  await vapiPatch(`/phone-number/${phoneNumberId}`, { serverUrl });
+  console.log(`[vapi] Phone number ${phoneNumberId} server URL updated`);
+}
+
+// ── 5. Webhook event router ─────────────────────────────────────────────────────
+
+export interface VapiEventHandlers {
+  onCallStarted?:   (callId: string) => void;
+  onCallEnded?:     (callId: string, reason: string) => void;
+  onTranscript?:    (callId: string, text: string) => void;
+  onFunctionCall?:  (callId: string, name: string, params: Record<string, unknown>) => Promise<unknown>;
+  onEndOfCallReport?: (callId: string, artifact: VapiWebhookEvent['artifact']) => void;
+}
+
+export function routeVapiEvent(
+  event: VapiWebhookEvent,
+  handlers: VapiEventHandlers
+): unknown {
+  const callId = event.call?.id ?? 'unknown';
+
+  switch (event.type) {
+    case 'call.started':
+    case 'call-started':
+      console.log(`[vapi] Call started: ${callId}`);
+      handlers.onCallStarted?.(callId);
+      break;
+
+    case 'call.ended':
+    case 'call-ended':
+      console.log(`[vapi] Call ended: ${callId} reason=${event.endedReason}`);
+      handlers.onCallEnded?.(callId, event.endedReason ?? 'unknown');
+      break;
+
+    case 'transcript':
+      if (event.transcript) handlers.onTranscript?.(callId, event.transcript);
+      break;
+
+    case 'function-call':
+      if (event.functionCall && handlers.onFunctionCall) {
+        return handlers.onFunctionCall(
+          callId,
+          event.functionCall.name,
+          event.functionCall.parameters
+        );
+      }
+      break;
+
+    case 'end-of-call-report':
+      console.log(`[vapi] End-of-call report: ${callId}`);
+      handlers.onEndOfCallReport?.(callId, event.artifact);
+      break;
   }
 
-  return res.json();
+  return null;
 }
