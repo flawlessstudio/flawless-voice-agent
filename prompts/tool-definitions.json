@@ -1,69 +1,112 @@
-[
-  {
-    "type": "function",
-    "name": "log_to_crm",
-    "description": "Logs the call outcome, summary, and intent to the CRM. Must be called at the end of every conversation.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "intent": {
-          "type": "string",
-          "enum": ["qualify", "schedule", "support", "objection", "handoff", "other"],
-          "description": "Primary intent detected during the call"
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "updated": "2026-05-30",
+  "tools": [
+    {
+      "name": "check_dnc_status",
+      "description": "Verify if a phone number is on a Do-Not-Call registry before initiating or continuing an outbound call. Must be called before any outbound interaction.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "phone_number": {
+            "type": "string",
+            "description": "E.164 formatted phone number (e.g. +34612345678)"
+          },
+          "country_code": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code (e.g. ES, US, GB)"
+          }
         },
-        "summary": {
-          "type": "string",
-          "description": "2-3 sentence summary of the call outcome"
+        "required": ["phone_number", "country_code"]
+      }
+    },
+    {
+      "name": "verify_consent",
+      "description": "Verify that explicit consent has been captured and stored for the given contact before processing their data or continuing the call.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "contact_id": {
+            "type": "string",
+            "description": "Unique identifier for the contact"
+          },
+          "consent_type": {
+            "type": "string",
+            "enum": ["marketing", "service", "data_processing"],
+            "description": "Type of consent to verify"
+          }
         },
-        "outcome": {
-          "type": "string",
-          "enum": ["success", "callback", "not_interested", "transferred", "voicemail", "no_answer"],
-          "description": "Final outcome of the call"
+        "required": ["contact_id", "consent_type"]
+      }
+    },
+    {
+      "name": "escalate_to_human",
+      "description": "Transfer the current call to a human agent. Use when: user requests human, compliance block triggered, agent confidence < threshold, or 3+ failed intent attempts.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "enum": ["user_request", "compliance_block", "low_confidence", "max_retries", "technical_error"],
+            "description": "Reason for escalation"
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Current session ID for handoff context"
+          },
+          "summary": {
+            "type": "string",
+            "description": "Brief summary of the conversation so far for the human agent"
+          }
         },
-        "contact_id": {
-          "type": "string",
-          "description": "CRM contact ID if known"
-        }
-      },
-      "required": ["intent", "summary", "outcome"]
+        "required": ["reason", "session_id"]
+      }
+    },
+    {
+      "name": "log_audit_event",
+      "description": "Record an auditable decision or action taken by the agent. Required for compliance trail on all calls.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session identifier"
+          },
+          "event_type": {
+            "type": "string",
+            "enum": ["call_started", "consent_verified", "dnc_checked", "ai_disclosure_given", "intent_classified", "escalated", "call_ended"],
+            "description": "Type of auditable event"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional event context (no PII)"
+          }
+        },
+        "required": ["session_id", "event_type"]
+      }
+    },
+    {
+      "name": "get_call_script",
+      "description": "Retrieve the approved call script or talk track for a given campaign and intent.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "campaign_id": {
+            "type": "string",
+            "description": "Campaign identifier"
+          },
+          "intent": {
+            "type": "string",
+            "description": "Detected user intent (e.g. schedule_appointment, pricing_inquiry)"
+          },
+          "language": {
+            "type": "string",
+            "description": "BCP-47 language tag (e.g. en-US, es-ES)"
+          }
+        },
+        "required": ["campaign_id", "intent"]
+      }
     }
-  },
-  {
-    "type": "function",
-    "name": "check_availability",
-    "description": "Checks calendar availability for a given date range before suggesting meeting slots.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "date_from": {
-          "type": "string",
-          "description": "Start of range ISO8601 (YYYY-MM-DD)"
-        },
-        "date_to": {
-          "type": "string",
-          "description": "End of range ISO8601 (YYYY-MM-DD)"
-        }
-      },
-      "required": ["date_from", "date_to"]
-    }
-  },
-  {
-    "type": "function",
-    "name": "transfer_call",
-    "description": "Transfers the active call to a human agent. Use when caller requests human, situation is too complex, or caller is distressed.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "reason": {
-          "type": "string",
-          "description": "Reason for transfer"
-        },
-        "summary": {
-          "type": "string",
-          "description": "Brief summary of call so far for the receiving agent"
-        }
-      },
-      "required": ["reason", "summary"]
-    }
-  }
-]
+  ]
+}

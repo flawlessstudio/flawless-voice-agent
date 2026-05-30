@@ -1,0 +1,23 @@
+# Enforce consistent line endings across platforms
+* text=auto eol=lf
+
+# Binary files — no line ending conversion
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+
+# Diff heuristics for better readability
+*.md diff=markdown
+*.ts linguist-language=TypeScript
+*.json linguist-language=JSON

@@ -1,0 +1,54 @@
+# Flawless Voice Agent — Prompt Catalog
+# Format: id, version, status, models, updated, eval_ref, description
+# Statuses: draft | review | production | deprecated
+
+catalog:
+  - id: voice-agent-fast-v1
+    version: "1.0.0"
+    status: production
+    models:
+      - gpt-4o
+      - claude-3-5-sonnet-20241022
+    updated: "2026-05-25"
+    eval_ref: eval/golden-calls.json#gc-001
+    path: prompts/voice-agent-fast.md
+    description: >-
+      Fast-path voice agent prompt. Handles intent classification,
+      slot-filling and scripted responses in < 300ms.
+
+  - id: voice-agent-deep-v1
+    version: "1.0.0"
+    status: production
+    models:
+      - gpt-4o
+      - claude-3-5-sonnet-20241022
+    updated: "2026-05-25"
+    eval_ref: eval/golden-calls.json#gc-005
+    path: prompts/voice-agent-deep.md
+    description: >-
+      Deep-path voice agent prompt. Handles complex multi-turn reasoning,
+      objection handling and escalation routing.
+
+  - id: compliance-checker-v1
+    version: "1.0.0"
+    status: production
+    models:
+      - gpt-4o
+    updated: "2026-05-25"
+    eval_ref: eval/golden-calls.json#gc-009
+    path: prompts/compliance-checker.md
+    description: >-
+      Compliance validation prompt. Verifies DNC status, consent capture,
+      AI disclosure and GDPR/AI Act requirements per outbound call.
+
+  - id: fallback-handler-v1
+    version: "1.0.0"
+    status: production
+    models:
+      - gpt-4o-mini
+    updated: "2026-05-25"
+    eval_ref: eval/golden-calls.json#gc-010
+    path: prompts/fallback-handler.md
+    description: >-
+      Fallback path prompt. Handles handoff to human agent, graceful
+      degradation and error recovery messaging.
