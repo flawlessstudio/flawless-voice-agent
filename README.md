@@ -19,10 +19,10 @@
   <strong>Scalable to 10k concurrent calls</strong>
 </p>
 
-<!-- ─── Status & Meta badges ─────────────────────────────────────────────── -->
+<!-- ─── Status & meta badges (static — render reliably on private repos) ───── -->
 <p>
-  <a href="https://github.com/flawlessstudio/flawless-voice-agent/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/flawlessstudio/flawless-voice-agent/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI"></a>
-  <a href="https://github.com/flawlessstudio/flawless-voice-agent/actions/workflows/compliance.yml"><img alt="Compliance" src="https://img.shields.io/github/actions/workflow/status/flawlessstudio/flawless-voice-agent/compliance.yml?branch=main&style=for-the-badge&logo=shield&logoColor=white&label=Compliance"></a>
+  <img alt="Build" src="https://img.shields.io/badge/CI-5_quality_gates-22c55e?style=for-the-badge&logo=githubactions&logoColor=white">
+  <img alt="Compliance" src="https://img.shields.io/badge/Compliance-AI_Act_·_TCPA_·_GDPR-3b82f6?style=for-the-badge&logo=shield&logoColor=white">
   <a href="./LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge&logo=opensourceinitiative&logoColor=white"></a>
 </p>
 <p>
