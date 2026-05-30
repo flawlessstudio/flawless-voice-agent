@@ -4,38 +4,21 @@
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 
 <div align="center">
-<!-- ─── Banner (dynamic, gradient header) ──────────────────────────────── -->
-<a href="https://github.com/flawlessstudio/flawless-voice-agent">
-  <img alt="Flawless Voice Agent" width="100%" src="./.github/assets/banner.svg">
-</a>
 
-<h1>
-  <br/>
-  🎙️ Flawless Voice Agent
-</h1>
+# Flawless Voice Agent
 
-<h3><em>The optimal hybrid voice-agent platform.</em></h3>
+**The optimal hybrid voice-agent platform.**
 
+Dual-path architecture (fast · deep · fallback) &nbsp;·&nbsp; Registry-driven &nbsp;·&nbsp; Compliance-ready &nbsp;·&nbsp; Scalable to 10k concurrent calls
+
+<!-- Status badges -->
 <p>
-  <strong>Dual-path architecture</strong> (fast · deep · fallback) &nbsp;•&nbsp;
-  <strong>Registry-driven</strong> &nbsp;•&nbsp;
-  <strong>Compliance-ready</strong> &nbsp;•&nbsp;
-  <strong>Scalable to 10k concurrent calls</strong>
-</p>
-
-<!-- ─── Status & meta badges (static — render reliably on private repos) ───── -->
-<p>
-  <img alt="Build" src="https://img.shields.io/badge/CI-5_quality_gates-22c55e?style=for-the-badge&logo=githubactions&logoColor=white">
-  <img alt="Compliance" src="https://img.shields.io/badge/Compliance-AI_Act_·_TCPA_·_GDPR-3b82f6?style=for-the-badge&logo=shield&logoColor=white">
-  <a href="./LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge&logo=opensourceinitiative&logoColor=white"></a>
-</p>
-<p>
-  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-92.6%25-3178c6?style=flat-square&logo=typescript&logoColor=white">
-  <img alt="Node" src="https://img.shields.io/badge/Node.js-%E2%89%A520-339933?style=flat-square&logo=nodedotjs&logoColor=white">
+  <img alt="CI" src="https://github.com/flawlessstudio/flawless-voice-agent/actions/workflows/ci.yml/badge.svg">
+  <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-22c55e?style=flat-square">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.x-3178c6?style=flat-square&logo=typescript&logoColor=white">
+  <img alt="Node" src="https://img.shields.io/badge/Node.js-%E2%89%A522-339933?style=flat-square&logo=nodedotjs&logoColor=white">
   <img alt="Fastify" src="https://img.shields.io/badge/Fastify-4.x-000000?style=flat-square&logo=fastify&logoColor=white">
   <img alt="Docker" src="https://img.shields.io/badge/Docker-ready-2496ed?style=flat-square&logo=docker&logoColor=white">
-  <img alt="Kubernetes" src="https://img.shields.io/badge/Kubernetes-autoscale-326ce5?style=flat-square&logo=kubernetes&logoColor=white">
-  <img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-ff69b4?style=flat-square">
 </p>
 
 <p>
@@ -52,6 +35,7 @@
 </div>
 
 ---
+
 ## 💡 Why Flawless
 
 Most voice agents force a single trade-off: **fast but shallow**, or **smart but slow**.
@@ -115,6 +99,7 @@ flowchart LR
 </details>
 
 ---
+
 ## 🧱 Tech stack
 
 Each layer was selected as the best-in-class "winner" for its role, and every choice is
@@ -130,13 +115,13 @@ swappable through the [registry](./registry/) — no provider is hard-wired into
 | 🔗 **Integration** | [HubSpot](https://www.hubspot.com/) + [Salesforce](https://www.salesforce.com/) | CRM sync & post-call enrichment |
 | 📊 **QA / Analytics** | Custom eval layer | Golden calls, regression, scorecards |
 
-<sub>Runtime: **TypeScript** on **Node ≥ 20**, served with **Fastify** + **ws** (WebSocket media), traced with **Langfuse**.</sub>
+<sub>Runtime: **TypeScript** on **Node ≥ 22**, served with **Fastify** + **ws** (WebSocket media), traced with **Langfuse**.</sub>
 
 ---
 
 ## 🚀 Quick start
 
-> **Prerequisites:** Node ≥ 20, npm, and (optionally) Docker. Copy [`.env.example`](./.env.example) to `.env` and fill in your provider keys.
+> **Prerequisites:** Node ≥ 22, npm, and (optionally) Docker. Copy [`.env.example`](./.env.example) to `.env` and fill in your provider keys.
 
 ```bash
 # 1 · Clone & install
@@ -174,12 +159,13 @@ All day-to-day commands are wrapped in the [`Makefile`](./Makefile) — run `mak
 | `make test` | Run the full test suite (Jest) |
 | `make lint` / `make format` | Lint with ESLint / format with Prettier |
 | `make typecheck` | Strict TypeScript type checking |
-| `make eval-smoke` | Fast eval suite (&lt; 60s) against golden calls |
+| `make eval-smoke` | Fast eval suite (< 60s) against golden calls |
 | `make eval-regression` | Full regression eval suite |
 | `make compliance` | Run consent / disclosure / privacy checks |
 | `make audit` | npm security audit (high severity) |
 
 ---
+
 ## 🗂️ Project structure
 
 ```
@@ -237,6 +223,7 @@ flowchart LR
 | 5 | **Closure** | Registry consistent, stack frozen, docs final |
 
 ---
+
 ## 📚 Documentation
 
 The [`docs/`](./docs/) tree is the single source of truth. Start with the overview, then dive in.
