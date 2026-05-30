@@ -6,8 +6,7 @@
 <div align="center">
 <!-- ─── Banner (dynamic, gradient header) ──────────────────────────────── -->
 <a href="https://github.com/flawlessstudio/flawless-voice-agent">
-  <img alt="Flawless Voice Agent" width="100%"
-       src="https://capsule-render.vercel.app/api?type=waving&color=0:22c55e,50:3b82f6,100:6366f1&height=220&section=header&text=Flawless%20Voice%20Agent&fontSize=52&fontColor=ffffff&fontAlignY=38&desc=The%20optimal%20hybrid%20voice-agent%20platform%20%C2%B7%20fast%20%C2%B7%20deep%20%C2%B7%20fallback&descSize=18&descAlignY=60&animation=fadeIn">
+  <img alt="Flawless Voice Agent" width="100%" src="./.github/assets/banner.svg">
 </a>
 
 <h1>
