@@ -1,13 +1,21 @@
-module.exports = {
-  parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint'],
-  extends: [
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended'
-  ],
-  rules: {
-    '@typescript-eslint/no-explicit-any': 'warn',
-    '@typescript-eslint/explicit-function-return-type': 'off',
-    'no-console': 'warn'
+import tsParser from '@typescript-eslint/parser';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+
+export default [
+  {
+        files: ['src/**/*.ts'],
+        languageOptions: {
+                parser: tsParser,
+                ecmaVersion: 'latest',
+                sourceType: 'module'
+        },
+        plugins: {
+                '@typescript-eslint': tsPlugin
+        },
+        rules: {
+                '@typescript-eslint/no-explicit-any': 'warn',
+                '@typescript-eslint/explicit-function-return-type': 'off',
+                'no-console': 'warn'
+        }
   }
-};
+  ];
