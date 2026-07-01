@@ -1,0 +1,494 @@
+# Instincts generated from https://github.com/flawlessstudio/flawless-voice-agent
+# Generated: 2026-07-01T16:15:39.571Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: flawless-voice-agent-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: fix
+
+## Evidence
+
+- 1 commits analyzed
+- Detected conventional commit pattern
+- Examples: fix: audit exhaustivo - elimina scaffold huerfano, completa arquitectura dual-path y corrige todos los avisos
+
+---
+id: flawless-voice-agent-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Commit Length
+
+## Action
+
+Write detailed commit messages (~109 characters for first line)
+
+## Evidence
+
+- Average commit message length: 109 chars
+- Based on 1 commits
+
+---
+id: flawless-voice-agent-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: flawless-voice-agent-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: flawless-voice-agent-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: flawless-voice-agent-arch-type-based
+trigger: "when adding new code"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: https://github.com/flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Arch Type Based
+
+## Action
+
+Place code in the appropriate type folder (components/, services/, utils/, etc.)
+
+## Evidence
+
+- Type-based module organization detected
+- Folders: agents, api, compliance, integrations, orchestration
+
+---
+id: flawless-voice-agent-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: flawless-voice-agent-test-framework
+trigger: "when writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Test Framework
+
+## Action
+
+Use jest as the test framework
+
+## Evidence
+
+- Test framework detected: jest
+- File pattern: *.test.ts
+
+---
+id: flawless-voice-agent-test-naming
+trigger: "when creating a test file"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Test Naming
+
+## Action
+
+Name test files using the pattern: *.test.ts
+
+## Evidence
+
+- File pattern: *.test.ts
+- Consistent across test files
+
+---
+id: flawless-voice-agent-test-mocking
+trigger: "when mocking dependencies in tests"
+confidence: 0.75
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Test Mocking
+
+## Action
+
+Use jest.mock for mocking
+
+## Evidence
+
+- Mocking pattern detected: jest.mock
+- Consistent across test files
+
+---
+id: flawless-voice-agent-test-types
+trigger: "when planning tests for a feature"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Test Types
+
+## Action
+
+Write unit, integration, e2e tests to match project standards
+
+## Evidence
+
+- Test types detected: unit, integration, e2e
+- Coverage config: no
+
+---
+id: flawless-voice-agent-instinct-file-naming
+trigger: "When creating a new file in the codebase"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct File Naming
+
+## Action
+
+Name the file using camelCase convention
+
+## Evidence
+
+- Pattern in namingConventions.files
+
+---
+id: flawless-voice-agent-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct Function Naming
+
+## Action
+
+Use camelCase for the function name
+
+## Evidence
+
+- Pattern in namingConventions.functions
+
+---
+id: flawless-voice-agent-instinct-class-naming
+trigger: "When defining a new class"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct Class Naming
+
+## Action
+
+Use PascalCase for the class name
+
+## Evidence
+
+- Pattern in namingConventions.classes
+
+---
+id: flawless-voice-agent-instinct-constant-naming
+trigger: "When declaring a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct Constant Naming
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for the constant name
+
+## Evidence
+
+- Pattern in namingConventions.constants
+
+---
+id: flawless-voice-agent-instinct-import-style
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct Import Style
+
+## Action
+
+Use relative import paths
+
+## Evidence
+
+- Pattern in importStyle
+
+---
+id: flawless-voice-agent-instinct-export-style
+trigger: "When exporting from a module"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct Export Style
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in exportStyle
+
+---
+id: flawless-voice-agent-instinct-test-file-location
+trigger: "When adding a test file"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct Test File Location
+
+## Action
+
+Place the test file in the 'tests' directory, separate from source code
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation
+
+---
+id: flawless-voice-agent-instinct-test-file-naming
+trigger: "When naming a test file"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct Test File Naming
+
+## Action
+
+Use the pattern '*.test.ts' for test files
+
+## Evidence
+
+- Pattern in testing.filePattern
+
+---
+id: flawless-voice-agent-instinct-test-framework
+trigger: "When writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct Test Framework
+
+## Action
+
+Use Jest as the testing framework
+
+## Evidence
+
+- Pattern in testing.framework
+
+---
+id: flawless-voice-agent-instinct-test-types
+trigger: "When designing tests"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct Test Types
+
+## Action
+
+Include unit, integration, and e2e tests as appropriate
+
+## Evidence
+
+- Pattern in testing.testTypes
+
+---
+id: flawless-voice-agent-instinct-mocking
+trigger: "When mocking dependencies in tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct Mocking
+
+## Action
+
+Use 'jest.mock' for mocking
+
+## Evidence
+
+- Pattern in testing.mockingStyle
+
+---
+id: flawless-voice-agent-instinct-commit-format
+trigger: "When making a git commit"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct Commit Format
+
+## Action
+
+Format the commit message using the conventional commit style with the 'fix' prefix for bug fixes
+
+## Evidence
+
+- Pattern in commits.prefixes
+- Seen in commit: 'fix: audit exhaustivo - elimina scaffold huerfano, completa arquitectura dual-path y corrige todos los avisos'
+
+---
+id: flawless-voice-agent-instinct-commit-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct Commit Length
+
+## Action
+
+Include detailed descriptions, averaging over 100 characters
+
+## Evidence
+
+- Pattern in commits.averageLength
+
+---
+id: flawless-voice-agent-instinct-error-handling
+trigger: "When handling errors in code"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: flawlessstudio/flawless-voice-agent
+---
+
+# Flawless Voice Agent Instinct Error Handling
+
+## Action
+
+Use try-catch blocks for error handling
+
+## Evidence
+
+- Pattern in errorHandling.style
+
