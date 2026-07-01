@@ -1,12 +1,12 @@
 import OpenAI from 'openai';
-import { CallSession, SessionStore } from '../runtime/session';
-import { checkConsent, captureConsent } from '../compliance/consent';
-import { recordFailure, recordSuccess } from '../runtime/circuit-breaker';
-import { upsertLead, logActivity } from '../integrations/salesforce';
-import { triggerFallback } from '../runtime/fallback';
-import { logger } from '../analytics/logger';
-import { SYSTEM_PROMPT } from '../prompts/system';
-import { redactPII } from '../compliance/pii';
+import { CallSession, SessionStore } from '../runtime/call-session.js';
+import { checkConsent, captureConsent } from '../compliance/consent.js';
+import { recordFailure, recordSuccess } from '../runtime/circuit-breaker.js';
+import { upsertLead, logActivity } from '../integrations/salesforce.js';
+import { triggerFallback } from '../runtime/fallback.js';
+import { logger } from '../analytics/logger.js';
+import { SYSTEM_PROMPT } from '../prompts/system.js';
+import { redactPII } from '../compliance/pii.js';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -75,7 +75,7 @@ async function handleToolCall(
         ...Object.fromEntries(Object.entries(args).map(([k, v]) => [k, String(v)])),
       });
       await logActivity({ sessionId: session.sessionId, type: 'qualification', data: args });
-      await SessionStore.update(session.callSid, { crmSynced: true });
+      SessionStore.update(session.callSid, { crmSynced: true });
       return 'Lead qualified and saved to CRM.';
 
     case 'schedule_followup':
@@ -83,7 +83,7 @@ async function handleToolCall(
       return `Follow-up scheduled for ${args.preferred_day}.`;
 
     case 'request_human_handoff':
-      await SessionStore.update(session.callSid, { status: 'handed-off' });
+      SessionStore.update(session.callSid, { status: 'handed-off' });
       return 'Handoff requested.';
 
     default:
@@ -102,7 +102,7 @@ export const DeepPath = {
       return `<Response><Say>I'm unable to proceed. Goodbye.</Say><Hangup/></Response>`;
     }
     await captureConsent(session.sessionId, from);
-    await SessionStore.update(session.callSid, { consentCaptured: true, path: 'deep' });
+    SessionStore.update(session.callSid, { consentCaptured: true, path: 'deep' });
 
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: 'system', content: SYSTEM_PROMPT },
@@ -142,7 +142,7 @@ export const DeepPath = {
         turns++;
       }
 
-      await SessionStore.update(session.callSid, { turns, status: handoffRequested ? 'handed-off' : 'completed' });
+      SessionStore.update(session.callSid, { turns, status: handoffRequested ? 'handed-off' : 'completed' });
 
       if (handoffRequested) {
         return triggerFallback(session, 'human-handoff-requested');

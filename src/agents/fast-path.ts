@@ -1,12 +1,10 @@
-import { CallSession, SessionStore } from '../runtime/session';
-import { createDeepgramStream, sendAudioChunk, closeDeepgramStream } from '../stt/deepgram';
-import { createRealtimeSession, sendUserMessage, closeRealtimeSession } from '../llm/openai-realtime';
-import { synthesizeStream } from '../tts/elevenlabs';
-import { checkConsent, captureConsent } from '../compliance/consent';
-import { recordFailure, recordSuccess } from '../runtime/circuit-breaker';
-import { upsertContact, logCall } from '../integrations/hubspot';
-import { logger } from '../analytics/logger';
-import { SYSTEM_PROMPT } from '../prompts/system';
+import { CallSession, SessionStore } from '../runtime/call-session.js';
+import { createRealtimeSession, sendUserMessage, closeRealtimeSession } from '../llm/openai-realtime.js';
+import { checkConsent, captureConsent } from '../compliance/consent.js';
+import { recordFailure, recordSuccess } from '../runtime/circuit-breaker.js';
+import { upsertContact, logCall } from '../integrations/hubspot.js';
+import { logger } from '../analytics/logger.js';
+import { SYSTEM_PROMPT } from '../prompts/system.js';
 
 export const FastPath = {
   async handle(session: CallSession, body: Record<string, string>): Promise<string> {
@@ -21,37 +19,45 @@ export const FastPath = {
     }
 
     await captureConsent(session.sessionId, from);
-    await SessionStore.update(session.callSid, { consentCaptured: true });
+    SessionStore.update(session.callSid, { consentCaptured: true });
 
-    // OpenAI Realtime session
-    let responseText = '';
-    const realtimeSession = createRealtimeSession(
-      SYSTEM_PROMPT,
-      (delta) => { responseText += delta; },
-      async () => {
-        // On response complete: synthesize and CRM sync
-        recordSuccess('fast-path');
-        await SessionStore.update(session.callSid, { turns: session.turns + 1 });
-        try {
-          await upsertContact({ phone: from, lastCallDate: new Date().toISOString() });
-          await logCall({ sessionId: session.sessionId, callSid: session.callSid });
-          await SessionStore.update(session.callSid, { crmSynced: true });
-        } catch (e) {
-          logger.warn({ err: e }, 'CRM sync failed');
+    try {
+      // OpenAI Realtime session
+      let responseText = '';
+      const realtimeSession = createRealtimeSession(
+        SYSTEM_PROMPT,
+        (delta) => { responseText += delta; },
+        async () => {
+          // On response complete: synthesize and CRM sync
+          recordSuccess('fast-path');
+          SessionStore.update(session.callSid, { turns: session.turns + 1 });
+          try {
+            await upsertContact({ phone: from, lastCallDate: new Date().toISOString() });
+            await logCall({ sessionId: session.sessionId, callSid: session.callSid });
+            SessionStore.update(session.callSid, { crmSynced: true });
+          } catch (e) {
+            logger.warn({ err: e }, 'CRM sync failed');
+          }
         }
-      }
-    );
+      );
 
-    // Initial greeting
-    sendUserMessage(realtimeSession, 'Call started');
+      // Initial greeting
+      sendUserMessage(realtimeSession, 'Call started');
 
-    // Return TwiML with WebSocket stream for media
-    closeRealtimeSession(realtimeSession);
+      // Return TwiML with WebSocket stream for media
+      closeRealtimeSession(realtimeSession);
 
-    return `<Response>
+      void responseText; // reserved for future inline-TwiML use once streaming is wired end-to-end
+
+      return `<Response>
   <Say voice="Polly.Joanna">Hi, this is Alex, an AI voice agent from Flawless. Is now a good time to talk?</Say>
   <Gather input="speech" timeout="5" action="/twilio/gather">
   </Gather>
 </Response>`;
+    } catch (err) {
+      recordFailure('fast-path');
+      logger.error({ err, sessionId: session.sessionId }, 'Fast path error');
+      throw err;
+    }
   },
 };

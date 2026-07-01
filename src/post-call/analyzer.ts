@@ -64,10 +64,10 @@ export async function analyzeTranscript(
   const VALID_OUTCOMES   = ['success','callback','not_interested','transferred','voicemail','no_answer'] as const;
 
   return {
-    intent:    VALID_INTENTS.includes(parsed.intent as any)    ? parsed.intent!    : 'other',
+    intent:    VALID_INTENTS.includes(parsed.intent as PostCallAnalysis['intent'])       ? parsed.intent!    : 'other',
     summary:   typeof parsed.summary === 'string'              ? parsed.summary    : 'No summary available.',
-    sentiment: VALID_SENTIMENTS.includes(parsed.sentiment as any) ? parsed.sentiment! : 'neutral',
-    outcome:   VALID_OUTCOMES.includes(parsed.outcome as any)  ? parsed.outcome!   : 'callback',
+    sentiment: VALID_SENTIMENTS.includes(parsed.sentiment as PostCallAnalysis['sentiment']) ? parsed.sentiment! : 'neutral',
+    outcome:   VALID_OUTCOMES.includes(parsed.outcome as PostCallAnalysis['outcome'])     ? parsed.outcome!   : 'callback',
     nextAction: parsed.nextAction,
     keyFacts:   Array.isArray(parsed.keyFacts) ? parsed.keyFacts.slice(0, 5) : undefined,
   };

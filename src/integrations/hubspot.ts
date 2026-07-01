@@ -4,6 +4,8 @@
  * Auth: Private App token (HUBSPOT_ACCESS_TOKEN)
  */
 
+import { logger } from '../analytics/logger.js';
+
 const BASE = 'https://api.hubapi.com';
 
 function headers() {
@@ -37,6 +39,19 @@ async function put(path: string): Promise<void> {
   }
 }
 
+async function patch(path: string, body: unknown): Promise<unknown> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'PATCH',
+    headers: headers(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`HubSpot PATCH ${path} → ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface CallPayload {
@@ -56,6 +71,64 @@ export interface Utterance {
   ts: number;
 }
 
+// ── 0. Upsert contact by phone (fast-path CRM sync) ────────────────────────────
+
+export interface UpsertContactParams {
+  phone: string;
+  lastCallDate: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+/**
+ * Upserts a HubSpot contact keyed by phone number.
+ * Uses the CRM v3 "search or create" idiom: search by phone, PATCH if found,
+ * otherwise POST a new contact.
+ */
+export async function upsertContact(params: UpsertContactParams): Promise<string> {
+  const searchRes = await post('/crm/v3/objects/contacts/search', {
+    filterGroups: [{ filters: [{ propertyName: 'phone', operator: 'EQ', value: params.phone }] }],
+    limit: 1,
+  }) as { results: { id: string }[] };
+
+  const properties = {
+    phone: params.phone,
+    hs_lead_status: 'CONNECTED',
+    ...(params.firstName ? { firstname: params.firstName } : {}),
+    ...(params.lastName ? { lastname: params.lastName } : {}),
+  };
+
+  if (searchRes.results?.length) {
+    const contactId = searchRes.results[0].id;
+    await patch(`/crm/v3/objects/contacts/${contactId}`, { properties });
+    logger.info({ contactId }, '[hubspot] Contact updated');
+    return contactId;
+  }
+
+  const created = await post('/crm/v3/objects/contacts', { properties }) as { id: string };
+  logger.info({ contactId: created.id }, '[hubspot] Contact created');
+  return created.id;
+}
+
+/**
+ * Logs a lightweight call engagement (used by the fast-path agent right after
+ * a turn completes, independent of the full syncCallToHubSpot post-call flow).
+ */
+export async function logCall(params: { sessionId: string; callSid: string | null }): Promise<string> {
+  const data = await post('/crm/v3/objects/calls', {
+    properties: {
+      hs_call_title: `Fast-path turn — session ${params.sessionId}`,
+      hs_call_status: 'COMPLETED',
+      hs_call_external_id: params.callSid ?? params.sessionId,
+      hs_call_direction: 'OUTBOUND',
+      hs_call_source: 'INTEGRATIONS_PLATFORM',
+    },
+  }) as { id: string };
+
+  logger.info({ callId: data.id }, '[hubspot] Fast-path call logged');
+  return data.id;
+}
+
 // ── 1. Create HubSpot call engagement ─────────────────────────────────────────
 
 export async function createHubSpotCall(payload: CallPayload): Promise<string> {
@@ -73,7 +146,7 @@ export async function createHubSpotCall(payload: CallPayload): Promise<string> {
     },
   }) as { id: string };
 
-  console.log(`[hubspot] Call created: ${data.id}`);
+  logger.info({ callId: data.id }, '[hubspot] Call created');
   return data.id;
 }
 
@@ -86,7 +159,7 @@ export async function associateCallToContact(
   await put(
     `/crm/v3/objects/calls/${callId}/associations/contact/${contactId}/call_to_contact`
   );
-  console.log(`[hubspot] Call ${callId} associated to contact ${contactId}`);
+  logger.info({ callId, contactId }, '[hubspot] Call associated to contact');
 }
 
 // ── 3. Post transcript utterances ─────────────────────────────────────────────
@@ -108,7 +181,7 @@ export async function postTranscript(
     })),
   });
 
-  console.log(`[hubspot] Transcript posted: ${utterances.length} utterances`);
+  logger.info({ engagementId, count: utterances.length }, '[hubspot] Transcript posted');
 }
 
 // ── 4. Notify recording ready ──────────────────────────────────────────────────
@@ -117,7 +190,7 @@ export async function notifyRecordingReady(engagementId: string): Promise<void> 
   await post('/crm/v3/extensions/calling/recordings/ready', {
     engagementId: Number(engagementId),
   });
-  console.log(`[hubspot] Recording ready notified for ${engagementId}`);
+  logger.info({ engagementId }, '[hubspot] Recording ready notified');
 }
 
 // ── 5. Full sync (orchestrates all steps) ─────────────────────────────────────
@@ -135,16 +208,16 @@ export async function syncCallToHubSpot({
 
   if (contactId) {
     await associateCallToContact(callId, contactId).catch((err) =>
-      console.warn(`[hubspot] Association failed (non-fatal): ${err.message}`)
+      logger.warn({ err }, '[hubspot] Association failed (non-fatal)')
     );
   }
 
   await postTranscript(callId, utterances).catch((err) =>
-    console.warn(`[hubspot] Transcript failed (non-fatal): ${err.message}`)
+    logger.warn({ err }, '[hubspot] Transcript failed (non-fatal)')
   );
 
   await notifyRecordingReady(callId).catch((err) =>
-    console.warn(`[hubspot] Recording notify failed (non-fatal): ${err.message}`)
+    logger.warn({ err }, '[hubspot] Recording notify failed (non-fatal)')
   );
 
   return { callId };

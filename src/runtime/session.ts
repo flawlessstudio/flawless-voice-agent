@@ -13,6 +13,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import { logger } from '../analytics/logger.js';
 
 export interface Utterance {
   speaker: 'agent' | 'user';
@@ -76,7 +77,10 @@ export class SessionStore {
   end(): void {
     this.endedAt = new Date().toISOString();
     const dur = new Date(this.endedAt).getTime() - new Date(this.startedAt).getTime();
-    console.log(`[session:${this.sessionId}] ended. duration=${Math.round(dur / 1000)}s turns=${this.transcript.length}`);
+    logger.info(
+      { sessionId: this.sessionId, durationSec: Math.round(dur / 1000), turns: this.transcript.length },
+      '[session] ended'
+    );
   }
 
   get durationMs(): number {

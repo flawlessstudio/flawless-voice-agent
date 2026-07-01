@@ -1,4 +1,4 @@
-import { SessionStore } from '../../src/runtime/session';
+import { SessionStore } from '../../src/runtime/call-session';
 
 describe('SessionStore', () => {
   it('creates a session with correct defaults', () => {

@@ -7,6 +7,7 @@
  */
 
 import crypto from 'crypto';
+import { logger } from '../analytics/logger.js';
 
 const BASE = 'https://api.retellai.com';
 
@@ -80,7 +81,7 @@ export async function createRetellCall(
   if (params.retellLlmDynamicVariables)   body.retell_llm_dynamic_variables = params.retellLlmDynamicVariables;
 
   const data = await retellPost('/v2/create-phone-call', body) as { call_id: string };
-  console.log(`[retell] Call created: ${data.call_id}`);
+  logger.info({ callId: data.call_id }, '[retell] Call created');
   return data;
 }
 
@@ -124,20 +125,20 @@ export function routeRetellEvent(
 
   switch (event.event) {
     case 'call_started':
-      console.log(`[retell] Call started: ${callId}`);
+      logger.info({ callId }, '[retell] Call started');
       handlers.onCallStarted?.(callId);
       break;
 
     case 'call_ended':
       {
         const dur = event.call?.duration_ms ?? 0;
-        console.log(`[retell] Call ended: ${callId} duration=${dur}ms`);
+        logger.info({ callId, durationMs: dur }, '[retell] Call ended');
         handlers.onCallEnded?.(callId, dur);
       }
       break;
 
     case 'call_analyzed':
-      console.log(`[retell] Call analyzed: ${callId}`);
+      logger.info({ callId }, '[retell] Call analyzed');
       handlers.onCallAnalyzed?.(callId, event.call);
       break;
   }

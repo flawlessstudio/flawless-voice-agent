@@ -9,6 +9,7 @@ import { routeVapiEvent, type VapiWebhookEvent } from '../orchestration/vapi.js'
 import { routeRetellEvent, verifyRetellSignature, type RetellWebhookEvent } from '../orchestration/retell.js';
 import { syncCallToHubSpot } from '../integrations/hubspot.js';
 import { syncCallToSalesforce } from '../integrations/salesforce.js';
+import { logger } from '../analytics/logger.js';
 
 export async function webhookRoutes(app: FastifyInstance) {
 
@@ -18,15 +19,15 @@ export async function webhookRoutes(app: FastifyInstance) {
 
     const result = routeVapiEvent(event, {
       onCallStarted: (callId) => {
-        console.log(`[webhook:vapi] started ${callId}`);
+        logger.info({ callId }, '[webhook:vapi] started');
       },
 
       onCallEnded: (callId, reason) => {
-        console.log(`[webhook:vapi] ended ${callId} reason=${reason}`);
+        logger.info({ callId, reason }, '[webhook:vapi] ended');
       },
 
       onTranscript: (callId, text) => {
-        console.log(`[webhook:vapi] transcript ${callId}: ${text.slice(0, 80)}`);
+        logger.info({ callId, text: text.slice(0, 80) }, '[webhook:vapi] transcript');
       },
 
       onEndOfCallReport: (callId, artifact) => {
@@ -46,8 +47,8 @@ export async function webhookRoutes(app: FastifyInstance) {
 
         if (process.env.HUBSPOT_ACCESS_TOKEN) {
           syncCallToHubSpot({ payload, utterances: [] })
-            .then(({ callId: hsId }) => console.log(`[webhook:vapi] HubSpot synced ${hsId}`))
-            .catch((e: Error) => console.error(`[webhook:vapi] HubSpot error: ${e.message}`));
+            .then(({ callId: hsId }) => logger.info({ hsId }, '[webhook:vapi] HubSpot synced'))
+            .catch((e: Error) => logger.error({ err: e }, '[webhook:vapi] HubSpot error'));
         }
 
         if (process.env.SALESFORCE_INSTANCE_URL) {
@@ -56,13 +57,13 @@ export async function webhookRoutes(app: FastifyInstance) {
             payload: { ...payload, startTime: now, endTime: now, durationSeconds: 0 },
             utterances: [],
           })
-            .then(({ voiceCallId }) => console.log(`[webhook:vapi] SF synced ${voiceCallId}`))
-            .catch((e: Error) => console.error(`[webhook:vapi] SF error: ${e.message}`));
+            .then(({ voiceCallId }) => logger.info({ voiceCallId }, '[webhook:vapi] SF synced'))
+            .catch((e: Error) => logger.error({ err: e }, '[webhook:vapi] SF error'));
         }
       },
 
       onFunctionCall: async (_callId, name, params) => {
-        console.log(`[webhook:vapi] function-call ${name}`, params);
+        logger.info({ name, params }, '[webhook:vapi] function-call');
         return { success: true };
       },
     });
@@ -79,7 +80,7 @@ export async function webhookRoutes(app: FastifyInstance) {
     const rawBody = JSON.stringify(req.body);
 
     if (sig && !verifyRetellSignature(rawBody, sig)) {
-      console.warn('[webhook:retell] Invalid signature');
+      logger.warn('[webhook:retell] Invalid signature');
       return reply.status(401).send({ error: 'Invalid signature' });
     }
 
@@ -87,11 +88,11 @@ export async function webhookRoutes(app: FastifyInstance) {
 
     routeRetellEvent(event, {
       onCallStarted: (callId) => {
-        console.log(`[webhook:retell] started ${callId}`);
+        logger.info({ callId }, '[webhook:retell] started');
       },
 
       onCallEnded: (callId, durationMs) => {
-        console.log(`[webhook:retell] ended ${callId} duration=${durationMs}ms`);
+        logger.info({ callId, durationMs }, '[webhook:retell] ended');
       },
 
       onCallAnalyzed: (callId, call) => {
@@ -109,8 +110,8 @@ export async function webhookRoutes(app: FastifyInstance) {
 
         if (process.env.HUBSPOT_ACCESS_TOKEN) {
           syncCallToHubSpot({ payload, utterances: [] })
-            .then(({ callId: hsId }) => console.log(`[webhook:retell] HubSpot synced ${hsId}`))
-            .catch((e: Error) => console.error(`[webhook:retell] HubSpot error: ${e.message}`));
+            .then(({ callId: hsId }) => logger.info({ hsId }, '[webhook:retell] HubSpot synced'))
+            .catch((e: Error) => logger.error({ err: e }, '[webhook:retell] HubSpot error'));
         }
 
         if (process.env.SALESFORCE_INSTANCE_URL) {
@@ -119,8 +120,8 @@ export async function webhookRoutes(app: FastifyInstance) {
             payload: { ...payload, startTime: now, endTime: now, durationSeconds: Math.round((call.duration_ms ?? 0) / 1000) },
             utterances: [],
           })
-            .then(({ voiceCallId }) => console.log(`[webhook:retell] SF synced ${voiceCallId}`))
-            .catch((e: Error) => console.error(`[webhook:retell] SF error: ${e.message}`));
+            .then(({ voiceCallId }) => logger.info({ voiceCallId }, '[webhook:retell] SF synced'))
+            .catch((e: Error) => logger.error({ err: e }, '[webhook:retell] SF error'));
         }
       },
     });

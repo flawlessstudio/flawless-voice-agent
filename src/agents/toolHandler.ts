@@ -16,6 +16,7 @@ import type { SessionStore } from '../runtime/session.js';
 import { syncCallToHubSpot }   from '../integrations/hubspot.js';
 import { syncCallToSalesforce } from '../integrations/salesforce.js';
 import { routeHandoff }         from './handoff.js';
+import { logger } from '../analytics/logger.js';
 
 interface ToolCallMessage {
   call_id:   string;
@@ -42,7 +43,7 @@ export function handleToolCall(
   session: SessionStore
 ): void {
   const { call_id, name, arguments: rawArgs } = msg;
-  console.log(`[tool] ${name}`, rawArgs);
+  logger.info({ tool: name, rawArgs }, '[tool] Invoked');
 
   // Always ACK immediately — never block the audio thread
   const ack = (output: Record<string, unknown> = { success: true }) => {
@@ -85,10 +86,10 @@ export function handleToolCall(
       })
         .then(({ callId }) => {
           session.crm.hubspot = { callId, synced: true };
-          console.log(`[crm] HubSpot synced: callId=${callId}`);
+          logger.info({ callId }, '[crm] HubSpot synced');
         })
         .catch((err: Error) => {
-          console.error(`[crm] HubSpot sync failed: ${err.message}`);
+          logger.error({ err }, '[crm] HubSpot sync failed');
           session.crm.hubspot = { callId: '', synced: false };
         });
     }
@@ -112,10 +113,10 @@ export function handleToolCall(
       })
         .then(({ voiceCallId }) => {
           session.crm.salesforce = { voiceCallId, synced: true };
-          console.log(`[crm] Salesforce synced: voiceCallId=${voiceCallId}`);
+          logger.info({ voiceCallId }, '[crm] Salesforce synced');
         })
         .catch((err: Error) => {
-          console.error(`[crm] Salesforce sync failed: ${err.message}`);
+          logger.error({ err }, '[crm] Salesforce sync failed');
           session.crm.salesforce = { voiceCallId: '', synced: false };
         });
     }
@@ -134,16 +135,16 @@ export function handleToolCall(
 
     routeHandoff(args.reason, args.summary, session.toJSON())
       .then((result) => {
-        console.log(`[handoff] Result: success=${result.success} target=${result.target.type}`);
+        logger.info({ success: result.success, target: result.target.type }, '[handoff] Result');
       })
       .catch((err: Error) => {
-        console.error(`[handoff] Failed: ${err.message}`);
+        logger.error({ err }, '[handoff] Failed');
       });
 
     return;
   }
 
   // ── unknown tool ──────────────────────────────────────────────────────────
-  console.warn(`[tool] Unknown tool: ${name}`);
+  logger.warn({ tool: name }, '[tool] Unknown tool');
   ack({ success: false, error: `Unknown tool: ${name}` });
 }

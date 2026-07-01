@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 
 export async function incomingCallRoute(app: FastifyInstance) {
-  app.post('/incoming-call', async (req, reply) => {
+  app.post('/incoming-call', async (_req, reply) => {
     const publicUrl = process.env.PUBLIC_URL ?? '';
     const wsUrl = publicUrl.replace('https://', 'wss://');
     const agentName = process.env.AGENT_NAME ?? 'Alex';

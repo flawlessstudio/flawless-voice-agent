@@ -9,6 +9,7 @@
  */
 
 import WebSocket from 'ws';
+import { logger } from '../analytics/logger.js';
 
 const BASE_HTTP = 'https://api.elevenlabs.io/v1';
 
@@ -47,7 +48,7 @@ export function createElevenLabsStream(
   const ws = new WebSocket(url, { headers: { 'xi-api-key': apiKey } });
 
   ws.on('open', () => {
-    console.log('[elevenlabs:tts] WebSocket open');
+    logger.info('[elevenlabs:tts] WebSocket open');
     // Send BOS (begin of stream)
     ws.send(JSON.stringify({
       text: ' ',
@@ -77,11 +78,11 @@ export function createElevenLabsStream(
   });
 
   ws.on('error', (err: Error) => {
-    console.error('[elevenlabs:tts] Error:', err.message);
+    logger.error({ err }, '[elevenlabs:tts] Error');
     callbacks.onError?.(err);
   });
 
-  ws.on('close', () => console.log('[elevenlabs:tts] WebSocket closed'));
+  ws.on('close', () => logger.info('[elevenlabs:tts] WebSocket closed'));
 
   function sendText(text: string, flush = false): void {
     if (ws.readyState !== WebSocket.OPEN) return;
@@ -106,7 +107,7 @@ export function createElevenLabsAgent(
   const ws = new WebSocket(url, { headers: { 'xi-api-key': apiKey } });
 
   ws.on('open', () => {
-    console.log('[elevenlabs:agent] WebSocket open');
+    logger.info('[elevenlabs:agent] WebSocket open');
 
     // Send init only if no agent_id (inline config)
     if (!agentId) {
@@ -165,7 +166,10 @@ export function createElevenLabsAgent(
 
       switch (msg.type) {
         case 'conversation_initiation_metadata':
-          console.log('[elevenlabs:agent] Session:', msg.conversation_initiation_metadata_event?.conversation_id);
+          logger.info(
+            { conversationId: msg.conversation_initiation_metadata_event?.conversation_id },
+            '[elevenlabs:agent] Session'
+          );
           break;
 
         case 'audio':
@@ -183,7 +187,10 @@ export function createElevenLabsAgent(
           break;
 
         case 'agent_response':
-          console.log('[elevenlabs:agent] Response:', msg.agent_response_event?.agent_response?.slice(0, 60));
+          logger.info(
+            { response: msg.agent_response_event?.agent_response?.slice(0, 60) },
+            '[elevenlabs:agent] Response'
+          );
           break;
 
         case 'tool_call':
@@ -197,12 +204,12 @@ export function createElevenLabsAgent(
                   result: JSON.stringify(output),
                 }));
               })
-              .catch((err: Error) => console.error('[elevenlabs:agent] Tool error:', err.message));
+              .catch((err: Error) => logger.error({ err }, '[elevenlabs:agent] Tool error'));
           }
           break;
 
         case 'interruption':
-          console.log('[elevenlabs:agent] Interruption detected');
+          logger.info('[elevenlabs:agent] Interruption detected');
           break;
 
         case 'ping':
@@ -222,12 +229,12 @@ export function createElevenLabsAgent(
   });
 
   ws.on('error', (err: Error) => {
-    console.error('[elevenlabs:agent] WS error:', err.message);
+    logger.error({ err }, '[elevenlabs:agent] WS error');
     callbacks.onError?.(err);
   });
 
   ws.on('close', () => {
-    console.log('[elevenlabs:agent] WebSocket closed');
+    logger.info('[elevenlabs:agent] WebSocket closed');
     callbacks.onClose?.();
   });
 
@@ -277,6 +284,6 @@ export async function createConvAIAgent(config: {
   });
   if (!res.ok) throw new Error(`ElevenLabs createAgent: ${res.status}`);
   const data = await res.json() as { agent_id: string };
-  console.log(`[elevenlabs] Agent created: ${data.agent_id}`);
+  logger.info({ agentId: data.agent_id }, '[elevenlabs] Agent created');
   return data.agent_id;
 }

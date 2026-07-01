@@ -4,9 +4,9 @@
  */
 import toolDefs from '../../prompts/tool-definitions.json';
 
-type Tool = { type: string; name: string; description: string; parameters: unknown };
+type Tool = { name: string; description: string; parameters: unknown };
 
-const tools = (toolDefs as { tools: Tool[] }).tools;
+const tools = (toolDefs as unknown as { tools: Tool[] }).tools;
 
 describe('OpenAI Realtime session config', () => {
   it('tool-definitions.json contains required tools', () => {
