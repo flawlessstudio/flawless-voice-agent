@@ -12,14 +12,18 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "compliance:check": "echo \"compliance check placeholder\"",
+    "eval:smoke": "echo \"eval smoke placeholder\"",
+    "eval:regression": "echo \"eval regression placeholder\""
   },
   "dependencies": {
     "@fastify/formbody": "^7.4.0",
     "@fastify/websocket": "^8.3.1",
     "dotenv": "^16.4.5",
     "fastify": "^5.8.5",
-    "ws": "^8.16.0"
+    "ws": "^8.16.0",
+    "openai": "^4.0.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
