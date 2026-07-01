@@ -15,14 +15,15 @@ import type { VoiceSessionJSON } from '../runtime/session.js';
 import { analyzeTranscript } from './analyzer.js';
 import { syncCallToHubSpot }   from '../integrations/hubspot.js';
 import { syncCallToSalesforce } from '../integrations/salesforce.js';
+import { logger } from '../analytics/logger.js';
 
 export async function flushSessionToCRM(session: VoiceSessionJSON): Promise<void> {
   if (!session.transcript || session.transcript.length < 2) {
-    console.warn(`[crm-enricher] Skipping short session ${session.sessionId}`);
+    logger.warn({ sessionId: session.sessionId }, '[crm-enricher] Skipping short session');
     return;
   }
 
-  console.log(`[crm-enricher] Starting post-call analysis for ${session.sessionId}`);
+  logger.info({ sessionId: session.sessionId }, '[crm-enricher] Starting post-call analysis');
 
   // Step 1: Enrich with LLM analysis (non-blocking, post-call only)
   let enriched = { ...session };
@@ -37,9 +38,9 @@ export async function flushSessionToCRM(session: VoiceSessionJSON): Promise<void
       nextAction: analysis.nextAction,
       keyFacts:   analysis.keyFacts,
     };
-    console.log(`[crm-enricher] Analysis done: intent=${analysis.intent} sentiment=${analysis.sentiment}`);
+    logger.info({ intent: analysis.intent, sentiment: analysis.sentiment }, '[crm-enricher] Analysis done');
   } catch (err) {
-    console.error('[crm-enricher] Analysis failed, syncing raw session:', (err as Error).message);
+    logger.error({ err }, '[crm-enricher] Analysis failed, syncing raw session');
   }
 
   const fromNumber  = process.env.TWILIO_PHONE_NUMBER ?? '';
@@ -63,8 +64,8 @@ export async function flushSessionToCRM(session: VoiceSessionJSON): Promise<void
         utterances: enriched.transcript,
         contactId:  enriched.contactId,
       })
-        .then(({ callId }) => console.log(`[crm-enricher] HubSpot synced: callId=${callId}`))
-        .catch((err: Error) => console.error('[crm-enricher] HubSpot sync failed:', err.message))
+        .then(({ callId }) => logger.info({ callId }, '[crm-enricher] HubSpot synced'))
+        .catch((err: Error) => logger.error({ err }, '[crm-enricher] HubSpot sync failed'))
     );
   }
 
@@ -85,15 +86,15 @@ export async function flushSessionToCRM(session: VoiceSessionJSON): Promise<void
         utterances: enriched.transcript,
         contactId:  enriched.contactId,
       })
-        .then(({ voiceCallId }) => console.log(`[crm-enricher] Salesforce synced: voiceCallId=${voiceCallId}`))
-        .catch((err: Error) => console.error('[crm-enricher] Salesforce sync failed:', err.message))
+        .then(({ voiceCallId }) => logger.info({ voiceCallId }, '[crm-enricher] Salesforce synced'))
+        .catch((err: Error) => logger.error({ err }, '[crm-enricher] Salesforce sync failed'))
     );
   }
 
   if (tasks.length === 0) {
-    console.warn('[crm-enricher] No CRM configured — session logged locally only');
+    logger.warn('[crm-enricher] No CRM configured — session logged locally only');
   }
 
   await Promise.allSettled(tasks);
-  console.log(`[crm-enricher] Done for session ${session.sessionId}`);
+  logger.info({ sessionId: session.sessionId }, '[crm-enricher] Done for session');
 }

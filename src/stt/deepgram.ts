@@ -9,6 +9,7 @@
  */
 
 import WebSocket from 'ws';
+import { logger } from '../analytics/logger.js';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ export function createDeepgramStream(callbacks: DeepgramCallbacks): WebSocket {
   );
 
   ws.on('open', () => {
-    console.log('[deepgram:stt] WebSocket open');
+    logger.info('[deepgram:stt] WebSocket open');
   });
 
   ws.on('message', (raw: Buffer) => {
@@ -83,12 +84,12 @@ export function createDeepgramStream(callbacks: DeepgramCallbacks): WebSocket {
   });
 
   ws.on('error', (err: Error) => {
-    console.error('[deepgram:stt] Error:', err.message);
+    logger.error({ err }, '[deepgram:stt] Error');
     callbacks.onError?.(err);
   });
 
   ws.on('close', () => {
-    console.log('[deepgram:stt] WebSocket closed');
+    logger.info('[deepgram:stt] WebSocket closed');
     callbacks.onClose?.();
   });
 
@@ -118,7 +119,7 @@ export function createDeepgramVoiceAgent(
   );
 
   ws.on('open', () => {
-    console.log('[deepgram:agent] WebSocket open — sending Settings');
+    logger.info('[deepgram:agent] WebSocket open — sending Settings');
 
     // Send Settings message immediately on open
     ws.send(JSON.stringify({
@@ -176,15 +177,15 @@ export function createDeepgramVoiceAgent(
 
       switch (msg.type) {
         case 'Welcome':
-          console.log('[deepgram:agent] Connected, session:', msg.session_id);
+          logger.info({ sessionId: msg.session_id }, '[deepgram:agent] Connected');
           break;
 
         case 'SettingsApplied':
-          console.log('[deepgram:agent] Settings applied');
+          logger.info('[deepgram:agent] Settings applied');
           break;
 
         case 'UserStartedSpeaking':
-          console.log('[deepgram:agent] User speaking...');
+          logger.info('[deepgram:agent] User speaking...');
           break;
 
         case 'ConversationText':
@@ -206,21 +207,21 @@ export function createDeepgramVoiceAgent(
                 }));
               })
               .catch((err: Error) => {
-                console.error('[deepgram:agent] FunctionCall error:', err.message);
+                logger.error({ err }, '[deepgram:agent] FunctionCall error');
               });
           }
           break;
 
         case 'AgentStartedSpeaking':
-          console.log('[deepgram:agent] Agent speaking...');
+          logger.info('[deepgram:agent] Agent speaking...');
           break;
 
         case 'AgentAudioDone':
-          console.log('[deepgram:agent] Agent turn done');
+          logger.info('[deepgram:agent] Agent turn done');
           break;
 
         case 'Error':
-          console.error('[deepgram:agent] Error:', msg.message);
+          logger.error({ message: msg.message }, '[deepgram:agent] Error');
           callbacks.onError?.(new Error(msg.message));
           break;
       }
@@ -230,12 +231,12 @@ export function createDeepgramVoiceAgent(
   });
 
   ws.on('error', (err: Error) => {
-    console.error('[deepgram:agent] WS error:', err.message);
+    logger.error({ err }, '[deepgram:agent] WS error');
     callbacks.onError?.(err);
   });
 
   ws.on('close', () => {
-    console.log('[deepgram:agent] WebSocket closed');
+    logger.info('[deepgram:agent] WebSocket closed');
     callbacks.onClose?.();
   });
 

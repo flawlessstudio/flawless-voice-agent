@@ -80,18 +80,27 @@ async function evalLLMQuality(raw: string): Promise<LLMEvalResult> {
 }
 
 // CLI
-const file = process.argv[2];
-if (!file) {
-  console.error('Usage: npx tsx eval/llm-quality.ts <session.json>');
-  process.exit(1);
+async function main(): Promise<void> {
+  const file = process.argv[2];
+  if (!file) {
+    console.error('Usage: npx tsx eval/llm-quality.ts <session.json>');
+    process.exit(1);
+  }
+
+  const raw    = fs.readFileSync(file, 'utf-8');
+  const result = await evalLLMQuality(raw);
+
+  console.log(`\nLLM Quality Eval: ${result.sessionId}`);
+  console.log(`Overall: ${result.overallScore}/100 — ${result.passed ? '✅ PASS' : '❌ FAIL'}`);
+  console.log(`  Intent accuracy:    ${result.intentAccuracy}/5`);
+  console.log(`  Summary faithful:   ${result.summaryFaithful}/5`);
+  console.log(`  Sentiment accuracy: ${result.sentimentAccuracy}/5`);
+  console.log(`  Feedback: ${result.feedback}`);
+
+  if (!result.passed) process.exitCode = 1;
 }
 
-const raw    = fs.readFileSync(file, 'utf-8');
-const result = await evalLLMQuality(raw);
-
-console.log(`\nLLM Quality Eval: ${result.sessionId}`);
-console.log(`Overall: ${result.overallScore}/100 — ${result.passed ? '✅ PASS' : '❌ FAIL'}`);
-console.log(`  Intent accuracy:    ${result.intentAccuracy}/5`);
-console.log(`  Summary faithful:   ${result.summaryFaithful}/5`);
-console.log(`  Sentiment accuracy: ${result.sentimentAccuracy}/5`);
-console.log(`  Feedback: ${result.feedback}`);
+main().catch((err) => {
+  console.error('[eval:llm-quality] Fatal error:', err instanceof Error ? err.message : err);
+  process.exit(1);
+});

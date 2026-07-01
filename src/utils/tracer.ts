@@ -12,6 +12,8 @@
  * Langfuse docs: https://langfuse.com/docs/sdk/typescript/guide
  */
 
+import { logger } from '../analytics/logger.js';
+
 export interface SpanInput {
   name:        string;
   sessionId?:  string;
@@ -37,9 +39,22 @@ export interface Span {
 }
 
 // ── Langfuse client (lazy init) ─────────────────────────────────────────────
-let _langfuse: any = null;
+interface LangfuseClient {
+  trace: (params: Record<string, unknown>) => {
+    generation: (params: Record<string, unknown>) => {
+      end: (params: Record<string, unknown>) => void;
+    };
+    span: (params: Record<string, unknown>) => {
+      end: (params: Record<string, unknown>) => void;
+    };
+  };
+  score: (params: Record<string, unknown>) => void;
+  flushAsync?: () => Promise<void>;
+}
 
-function getLangfuse() {
+let _langfuse: LangfuseClient | null = null;
+
+function getLangfuse(): LangfuseClient | null {
   if (_langfuse) return _langfuse;
   if (!process.env.LANGFUSE_SECRET_KEY) return null;
 
@@ -51,9 +66,9 @@ function getLangfuse() {
       publicKey:  process.env.LANGFUSE_PUBLIC_KEY ?? '',
       baseUrl:    process.env.LANGFUSE_HOST ?? 'https://cloud.langfuse.com',
     });
-    console.log('[tracer] Langfuse connected');
+    logger.info('[tracer] Langfuse connected');
   } catch {
-    console.warn('[tracer] langfuse package not installed — using console fallback');
+    logger.warn('[tracer] langfuse package not installed — using console fallback');
   }
   return _langfuse;
 }
@@ -61,8 +76,8 @@ function getLangfuse() {
 // ── No-op span (fallback) ──────────────────────────────────────────────────
 function noopSpan(name: string): Span {
   return {
-    end: (out?) => { if (out?.level === 'ERROR') console.error(`[span:${name}]`, out.output); },
-    error: (err) => console.error(`[span:${name}] ERROR:`, err.message),
+    end: (out?) => { if (out?.level === 'ERROR') logger.error({ output: out.output }, `[span:${name}]`); },
+    error: (err) => logger.error({ err }, `[span:${name}] ERROR`),
   };
 }
 

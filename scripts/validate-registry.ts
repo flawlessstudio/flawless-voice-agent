@@ -15,4 +15,25 @@ for (const layer of REQUIRED_LAYERS) {
   }
 }
 
+// Validate the watchlist: every candidate must be traceable to a known layer
+// and carry the reason/score fields the registry taxonomy requires.
+const REQUIRED_CANDIDATE_FIELDS = ['layer', 'name', 'reason', 'score'] as const;
+
+for (const candidate of watchlist.candidates ?? []) {
+  for (const field of REQUIRED_CANDIDATE_FIELDS) {
+    if (candidate[field] === undefined || candidate[field] === '') {
+      console.error(`Watchlist candidate "${candidate.name ?? '(unnamed)'}" is missing required field: ${field}`);
+      process.exit(1);
+    }
+  }
+  if (!REQUIRED_LAYERS.includes(candidate.layer)) {
+    console.error(`Watchlist candidate "${candidate.name}" references unknown layer: ${candidate.layer}`);
+    process.exit(1);
+  }
+  if (typeof candidate.score !== 'number' || candidate.score < 0 || candidate.score > 10) {
+    console.error(`Watchlist candidate "${candidate.name}" has an invalid score: ${candidate.score}`);
+    process.exit(1);
+  }
+}
+
 console.info('Registry validation passed.');

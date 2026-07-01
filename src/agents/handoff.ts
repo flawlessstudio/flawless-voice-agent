@@ -14,6 +14,7 @@
 
 import type { VoiceSessionJSON } from '../runtime/session.js';
 import { tracer } from '../utils/tracer.js';
+import { logger } from '../analytics/logger.js';
 
 export type HandoffTarget =
   | { type: 'human';         phoneNumber: string; }
@@ -106,17 +107,16 @@ async function executeHandoff(
   if (target.type === 'human') {
     const transferUrl = process.env.TWILIO_TRANSFER_TWIML_URL;
     if (!transferUrl) {
-      console.warn('[handoff] TWILIO_TRANSFER_TWIML_URL not set — human handoff skipped');
+      logger.warn('[handoff] TWILIO_TRANSFER_TWIML_URL not set — human handoff skipped');
       return { success: false, target, message: 'TWILIO_TRANSFER_TWIML_URL not configured' };
     }
-    console.log(`[handoff] Transferring to human: ${target.phoneNumber}`);
-    console.log(`[handoff] Context: ${context.summaryToDate}`);
+    logger.info({ phoneNumber: target.phoneNumber, summary: context.summaryToDate }, '[handoff] Transferring to human');
     return { success: true, target };
   }
 
   if (target.type === 'sdr' || target.type === 'support' || target.type === 'closing') {
     AgentContextRegistry.set(target.agentId, context);
-    console.log(`[handoff] Context stored for agent ${target.agentId}`);
+    logger.info({ agentId: target.agentId }, '[handoff] Context stored for agent');
     return { success: true, target };
   }
 

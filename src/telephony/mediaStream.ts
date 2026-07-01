@@ -18,6 +18,7 @@ import { createOpenAISession } from '../llm/openai.js';
 import { SessionStore } from '../runtime/session.js';
 import { handleToolCall } from '../agents/toolHandler.js';
 import { flushSessionToCRM } from '../post-call/crm-enricher.js';
+import { logger } from '../analytics/logger.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const OPENAI_WS_URL =
@@ -26,10 +27,15 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_BASE_MS      = 200;
 const RECONNECT_CAP_MS       = 5_000;
 
+// Twilio media-stream WS connection shape provided by @fastify/websocket
+interface MediaStreamConnection {
+  socket: WebSocket;
+}
+
 // ─── Route ────────────────────────────────────────────────────────────────────
 export async function mediaStreamRoute(app: FastifyInstance) {
-  app.get('/media-stream', { websocket: true }, async (connection: any) => {
-    console.log('[ws] Twilio connected');
+  app.get('/media-stream', { websocket: true }, async (connection: MediaStreamConnection) => {
+    logger.info('[ws] Twilio connected');
 
     const session                     = new SessionStore();
     let openAiWs: WebSocket | null    = null;
@@ -50,7 +56,7 @@ export async function mediaStreamRoute(app: FastifyInstance) {
       });
 
       openAiWs.on('open', () => {
-        console.log('[openai] WebSocket open');
+        logger.info('[openai] WebSocket open');
         reconnectAttempt = 0;
         createOpenAISession(openAiWs!);
       });
@@ -112,19 +118,19 @@ export async function mediaStreamRoute(app: FastifyInstance) {
           // ── INTERRUPT: user started speaking mid-response ────────────────
           // Source: openai/openai-realtime-twilio-demo + twilio-samples official repos
           case 'input_audio_buffer.speech_started':
-            console.log('[interrupt] User started speaking — clearing Twilio buffer');
+            logger.info('[interrupt] User started speaking — clearing Twilio buffer');
             handleInterrupt();
             break;
 
           // Transcripts
           case 'conversation.item.input_audio_transcription.completed':
             session.addUtterance('user', msg.transcript);
-            console.log(`[transcript:user] ${msg.transcript}`);
+            logger.info({ transcript: msg.transcript }, '[transcript:user]');
             break;
 
           case 'response.audio_transcript.done':
             session.addUtterance('agent', msg.transcript);
-            console.log(`[transcript:agent] ${msg.transcript}`);
+            logger.info({ transcript: msg.transcript }, '[transcript:agent]');
             break;
 
           // Tool calls
@@ -133,27 +139,30 @@ export async function mediaStreamRoute(app: FastifyInstance) {
             break;
 
           case 'error':
-            console.error('[openai] Error:', msg.error);
+            logger.error({ error: msg.error }, '[openai] Error');
             break;
         }
       });
 
       openAiWs.on('error', (err: Error) => {
-        console.error('[openai] WS error:', err.message);
+        logger.error({ err }, '[openai] WS error');
       });
 
       openAiWs.on('close', () => {
-        console.log('[openai] WebSocket closed');
+        logger.info('[openai] WebSocket closed');
         if (!callEnded && reconnectAttempt < MAX_RECONNECT_ATTEMPTS) {
           const delay = Math.min(
             RECONNECT_BASE_MS * 2 ** reconnectAttempt,
             RECONNECT_CAP_MS
           );
           reconnectAttempt++;
-          console.log(`[openai] Reconnecting in ${delay}ms (attempt ${reconnectAttempt}/${MAX_RECONNECT_ATTEMPTS})`);
+          logger.info(
+            { delayMs: delay, attempt: reconnectAttempt, max: MAX_RECONNECT_ATTEMPTS },
+            '[openai] Reconnecting'
+          );
           setTimeout(connectOpenAI, delay);
         } else if (!callEnded) {
-          console.error('[openai] Max reconnect attempts reached — falling back');
+          logger.error('[openai] Max reconnect attempts reached — falling back');
         }
       });
     }
@@ -190,13 +199,13 @@ export async function mediaStreamRoute(app: FastifyInstance) {
 
       switch (msg.event) {
         case 'connected':
-          console.log('[twilio] Stream protocol connected');
+          logger.info('[twilio] Stream protocol connected');
           break;
 
         case 'start':
           streamSid = msg.start.streamSid;
           session.setCallSid(msg.start.callSid);
-          console.log(`[twilio] Stream started — callSid: ${msg.start.callSid}`);
+          logger.info({ callSid: msg.start.callSid }, '[twilio] Stream started');
           connectOpenAI();
           break;
 
@@ -217,14 +226,14 @@ export async function mediaStreamRoute(app: FastifyInstance) {
           break;
 
         case 'stop':
-          console.log('[twilio] Stream stopped');
+          logger.info('[twilio] Stream stopped');
           endCall();
           break;
       }
     });
 
     connection.socket.on('close', () => {
-      console.log('[ws] Twilio disconnected');
+      logger.info('[ws] Twilio disconnected');
       endCall();
     });
 
@@ -237,7 +246,7 @@ export async function mediaStreamRoute(app: FastifyInstance) {
 
       // Flush session to CRM asynchronously — never block audio thread
       flushSessionToCRM(session.toJSON()).catch((err: Error) =>
-        console.error('[crm] Flush error:', err.message)
+        logger.error({ err }, '[crm] Flush error')
       );
     }
   });

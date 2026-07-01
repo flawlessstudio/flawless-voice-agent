@@ -5,6 +5,8 @@
  * Base: https://api.vapi.ai
  */
 
+import { logger } from '../analytics/logger.js';
+
 const BASE = 'https://api.vapi.ai';
 
 function headers() {
@@ -76,7 +78,7 @@ export async function createVapiCall(params: VapiOutboundCall): Promise<{ id: st
   if (params.metadata)    body.metadata     = params.metadata;
 
   const data = await vapiPost('/call', body) as { id: string };
-  console.log(`[vapi] Call created: ${data.id}`);
+  logger.info({ callId: data.id }, '[vapi] Call created');
   return data;
 }
 
@@ -101,7 +103,7 @@ export async function importTwilioNumber(params: {
     number:            params.phoneNumber,
     ...(params.serverUrl ? { serverUrl: params.serverUrl } : {}),
   }) as { id: string };
-  console.log(`[vapi] Twilio number imported: ${data.id}`);
+  logger.info({ phoneNumberId: data.id }, '[vapi] Twilio number imported');
   return data;
 }
 
@@ -112,7 +114,7 @@ export async function updatePhoneNumberServer(
   serverUrl: string
 ): Promise<void> {
   await vapiPatch(`/phone-number/${phoneNumberId}`, { serverUrl });
-  console.log(`[vapi] Phone number ${phoneNumberId} server URL updated`);
+  logger.info({ phoneNumberId }, '[vapi] Phone number server URL updated');
 }
 
 // ── 5. Webhook event router ─────────────────────────────────────────────────────
@@ -134,13 +136,13 @@ export function routeVapiEvent(
   switch (event.type) {
     case 'call.started':
     case 'call-started':
-      console.log(`[vapi] Call started: ${callId}`);
+      logger.info({ callId }, '[vapi] Call started');
       handlers.onCallStarted?.(callId);
       break;
 
     case 'call.ended':
     case 'call-ended':
-      console.log(`[vapi] Call ended: ${callId} reason=${event.endedReason}`);
+      logger.info({ callId, reason: event.endedReason }, '[vapi] Call ended');
       handlers.onCallEnded?.(callId, event.endedReason ?? 'unknown');
       break;
 
@@ -159,7 +161,7 @@ export function routeVapiEvent(
       break;
 
     case 'end-of-call-report':
-      console.log(`[vapi] End-of-call report: ${callId}`);
+      logger.info({ callId }, '[vapi] End-of-call report');
       handlers.onEndOfCallReport?.(callId, event.artifact);
       break;
   }

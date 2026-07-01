@@ -4,6 +4,8 @@
  * Auth: OAuth2 Connected App (access_token + refresh_token)
  */
 
+import { logger } from '../analytics/logger.js';
+
 export interface SalesforceConfig {
   instanceUrl: string;   // e.g. https://yourorg.my.salesforce.com
   accessToken: string;
@@ -58,7 +60,7 @@ async function refreshAccessToken(): Promise<string> {
   if (!res.ok) throw new Error(`SF token refresh failed: ${res.status}`);
   const data = await res.json() as { access_token: string };
   process.env.SALESFORCE_ACCESS_TOKEN = data.access_token;
-  console.log('[salesforce] Access token refreshed');
+  logger.info('[salesforce] Access token refreshed');
   return data.access_token;
 }
 
@@ -93,6 +95,60 @@ async function sfFetch(
   return text ? JSON.parse(text) : null;
 }
 
+// ── 0. Upsert Lead + log ad-hoc activity (deep-path tool calls) ─────────────
+
+export interface UpsertLeadParams {
+  callSid: string | null;
+  qualified: string;
+  [key: string]: string | null;
+}
+
+/**
+ * Upserts a Salesforce Lead using the call's ExternalId as the idempotency
+ * key (PATCH-by-external-id, "upsert" semantics per Salesforce REST API).
+ */
+export async function upsertLead(params: UpsertLeadParams): Promise<string> {
+  const externalId = params.callSid ?? `session-${Date.now()}`;
+  const { callSid: _callSid, ...fields } = params;
+  void _callSid;
+
+  const data = await sfFetch(
+    `/services/data/v60.0/sobjects/Lead/ExternalId__c/${encodeURIComponent(externalId)}`,
+    'PATCH',
+    {
+      Status: fields.qualified === 'true' ? 'Qualified' : 'Working',
+      Description: JSON.stringify(fields),
+    }
+  ) as { id?: string } | null;
+
+  const leadId = data?.id ?? externalId;
+  logger.info({ leadId }, '[salesforce] Lead upserted');
+  return leadId;
+}
+
+/**
+ * Logs a generic post-tool-call activity (Task) against the call, used by
+ * the deep-path agent to keep an audit trail of every tool invocation.
+ */
+export async function logActivity(params: {
+  sessionId: string;
+  type: string;
+  data: Record<string, unknown>;
+}): Promise<string> {
+  const data = await sfFetch(
+    '/services/data/v60.0/sobjects/Task',
+    'POST',
+    {
+      Subject: `[${params.type}] session ${params.sessionId}`,
+      Status: 'Completed',
+      Description: JSON.stringify(params.data),
+    }
+  ) as { id: string };
+
+  logger.info({ activityId: data.id }, '[salesforce] Activity logged');
+  return data.id;
+}
+
 // ── 1. Create VoiceCall record ───────────────────────────────────────────────
 
 export async function createVoiceCallRecord(
@@ -115,7 +171,7 @@ export async function createVoiceCallRecord(
     }
   ) as { id: string };
 
-  console.log(`[salesforce] VoiceCall created: ${data.id}`);
+  logger.info({ voiceCallId: data.id }, '[salesforce] VoiceCall created');
   return data.id;
 }
 
@@ -152,7 +208,7 @@ export async function postTranscriptNote(
     }
   );
 
-  console.log(`[salesforce] Transcript note linked to VoiceCall ${voiceCallId}`);
+  logger.info({ voiceCallId }, '[salesforce] Transcript note linked to VoiceCall');
 }
 
 // ── 3. Associate to Contact (optional) ──────────────────────────────────────
@@ -169,7 +225,7 @@ export async function associateToContact(
       RelationId: contactId,
     }
   );
-  console.log(`[salesforce] VoiceCall ${voiceCallId} associated to contact ${contactId}`);
+  logger.info({ voiceCallId, contactId }, '[salesforce] VoiceCall associated to contact');
 }
 
 // ── 4. Full sync ─────────────────────────────────────────────────────────────
@@ -186,12 +242,12 @@ export async function syncCallToSalesforce({
   const voiceCallId = await createVoiceCallRecord(payload);
 
   await postTranscriptNote(voiceCallId, utterances).catch((err: Error) =>
-    console.warn(`[salesforce] Transcript failed (non-fatal): ${err.message}`)
+    logger.warn({ err }, '[salesforce] Transcript failed (non-fatal)')
   );
 
   if (contactId) {
     await associateToContact(voiceCallId, contactId).catch((err: Error) =>
-      console.warn(`[salesforce] Association failed (non-fatal): ${err.message}`)
+      logger.warn({ err }, '[salesforce] Association failed (non-fatal)')
     );
   }
 
