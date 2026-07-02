@@ -12,6 +12,15 @@ type Args = {
   outDir: string;
   includeRead: boolean;
   apply: boolean;
+  allowedOrg?: string;
+  allowUnverifiableApply: boolean;
+  maxRetries: number;
+  retryDelayMs: number;
+};
+
+type RetryConfig = {
+  maxRetries: number;
+  retryDelayMs: number;
 };
 
 type NotificationSubject = {
@@ -60,6 +69,10 @@ function parseArgs(argv: string[]): Args {
   let outDir: string | undefined;
   let includeRead = false;
   let apply = false;
+  let allowedOrg: string | undefined;
+  let allowUnverifiableApply = false;
+  let maxRetries = 2;
+  let retryDelayMs = 500;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -90,6 +103,33 @@ function parseArgs(argv: string[]): Args {
       apply = true;
       continue;
     }
+    if (arg === '--allowed-org') {
+      allowedOrg = argv[i + 1];
+      i += 1;
+      continue;
+    }
+    if (arg === '--allow-unverifiable-apply') {
+      allowUnverifiableApply = true;
+      continue;
+    }
+    if (arg === '--max-retries') {
+      const value = Number(argv[i + 1]);
+      if (!Number.isInteger(value) || value < 0) {
+        throw new Error('Invalid --max-retries. Use integer >= 0.');
+      }
+      maxRetries = value;
+      i += 1;
+      continue;
+    }
+    if (arg === '--retry-delay-ms') {
+      const value = Number(argv[i + 1]);
+      if (!Number.isInteger(value) || value < 0) {
+        throw new Error('Invalid --retry-delay-ms. Use integer >= 0.');
+      }
+      retryDelayMs = value;
+      i += 1;
+      continue;
+    }
     throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -106,20 +146,50 @@ function parseArgs(argv: string[]): Args {
     outDir: path.resolve(outDir ?? defaultOutDir),
     includeRead,
     apply,
+    allowedOrg,
+    allowUnverifiableApply,
+    maxRetries,
+    retryDelayMs,
   };
 }
 
-function runGh(args: string[]): { ok: boolean; stdout: string; stderr: string } {
-  const cmd = spawnSync('gh', args, { encoding: 'utf8' });
+function sleepMs(ms: number): void {
+  if (ms <= 0) return;
+  const sab = new SharedArrayBuffer(4);
+  const arr = new Int32Array(sab);
+  Atomics.wait(arr, 0, 0, ms);
+}
+
+function runGh(args: string[], retry?: RetryConfig): { ok: boolean; stdout: string; stderr: string } {
+  const retries = retry?.maxRetries ?? 0;
+  const retryDelay = retry?.retryDelayMs ?? 0;
+
+  let lastStdout = '';
+  let lastStderr = '';
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const cmd = spawnSync('gh', args, { encoding: 'utf8' });
+    const ok = cmd.status === 0;
+    const stdout = cmd.stdout ?? '';
+    const stderr = cmd.stderr ?? '';
+    if (ok) {
+      return { ok: true, stdout, stderr };
+    }
+    lastStdout = stdout;
+    lastStderr = stderr;
+    if (attempt < retries) {
+      sleepMs(retryDelay * Math.max(1, 2 ** attempt));
+    }
+  }
+
   return {
-    ok: cmd.status === 0,
-    stdout: cmd.stdout ?? '',
-    stderr: cmd.stderr ?? '',
+    ok: false,
+    stdout: lastStdout,
+    stderr: lastStderr,
   };
 }
 
-function runGhJson(args: string[]): unknown {
-  const result = runGh(args);
+function runGhJson(args: string[], retry?: RetryConfig): unknown {
+  const result = runGh(args, retry);
   if (!result.ok) {
     throw new Error(`gh ${args.join(' ')} failed: ${result.stderr || result.stdout}`);
   }
@@ -135,7 +205,8 @@ function listNotifications(args: Args): NotificationThread[] {
     ? `/repos/${args.repo}/notifications?all=${args.includeRead ? 'true' : 'false'}&per_page=50`
     : `/notifications?all=${args.includeRead ? 'true' : 'false'}&participating=false&per_page=50`;
 
-  const data = runGhJson(['api', '--paginate', endpoint, '--slurp']);
+  const retry = { maxRetries: args.maxRetries, retryDelayMs: args.retryDelayMs };
+  const data = runGhJson(['api', '--paginate', endpoint, '--slurp'], retry);
   if (!Array.isArray(data)) {
     throw new Error('Unexpected notifications payload from GitHub API.');
   }
@@ -146,6 +217,9 @@ function listNotifications(args: Args): NotificationThread[] {
     for (const item of page) {
       out.push(item as NotificationThread);
     }
+  }
+  if (args.allowedOrg && args.scope === 'global') {
+    return out.filter((item) => (item.repository?.full_name ?? '').startsWith(`${args.allowedOrg}/`));
   }
   return out;
 }
@@ -254,6 +328,7 @@ function classifyGenericState(
 function evaluateThread(
   thread: NotificationThread,
   subjectCache: Map<string, Record<string, unknown>>,
+  retry: RetryConfig,
 ): Evaluation {
   const subject = thread.subject ?? {};
   const subjectType = subject.type ?? '';
@@ -263,7 +338,7 @@ function evaluateThread(
     if (!subjectUrl) return classifyCheckSuite(thread);
     const cacheKey = `${subjectType}|${subjectUrl}`;
     if (!subjectCache.has(cacheKey)) {
-      const data = runGhJson(['api', subjectUrl]) as Record<string, unknown>;
+      const data = runGhJson(['api', subjectUrl], retry) as Record<string, unknown>;
       subjectCache.set(cacheKey, data);
     }
     return classifyCheckSuite(thread, subjectCache.get(cacheKey));
@@ -286,7 +361,7 @@ function evaluateThread(
 
   const cacheKey = `${subjectType}|${subjectUrl}`;
   if (!subjectCache.has(cacheKey)) {
-    const data = runGhJson(['api', subjectUrl]) as Record<string, unknown>;
+    const data = runGhJson(['api', subjectUrl], retry) as Record<string, unknown>;
     subjectCache.set(cacheKey, data);
   }
   const data = subjectCache.get(cacheKey) ?? {};
@@ -324,16 +399,27 @@ function writeCsv(filePath: string, rows: OutputRow[], columns: Array<keyof Outp
   fs.writeFileSync(filePath, `${lines.join('\n')}\n`, 'utf8');
 }
 
+function ageBucket(updatedAt: string): '0-2d' | '3-7d' | '8-30d' | '>30d' {
+  const ts = Date.parse(updatedAt);
+  if (Number.isNaN(ts)) return '>30d';
+  const ageDays = (Date.now() - ts) / (1000 * 60 * 60 * 24);
+  if (ageDays <= 2) return '0-2d';
+  if (ageDays <= 7) return '3-7d';
+  if (ageDays <= 30) return '8-30d';
+  return '>30d';
+}
+
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
   fs.mkdirSync(args.outDir, { recursive: true });
+  const retry = { maxRetries: args.maxRetries, retryDelayMs: args.retryDelayMs };
 
   const threads = listNotifications(args);
   const subjectCache = new Map<string, Record<string, unknown>>();
   const rows: OutputRow[] = [];
 
   for (const thread of threads) {
-    const evaluation = evaluateThread(thread, subjectCache);
+    const evaluation = evaluateThread(thread, subjectCache, retry);
     rows.push({
       thread_id: String(thread.id),
       repository: thread.repository?.full_name ?? '',
@@ -353,26 +439,50 @@ function main(): void {
 
   const markedDone: string[] = [];
   const markErrors: Array<{ thread_id: string; error: string }> = [];
+  const applyBlockedReason: string[] = [];
+  const unverifiableCount = rows.filter((r) => r.classification === 'unverifiable').length;
+  if (args.apply && !args.allowUnverifiableApply && unverifiableCount > 0) {
+    applyBlockedReason.push(
+      `apply blocked: ${unverifiableCount} unverifiable notifications detected; rerun with --allow-unverifiable-apply to override`,
+    );
+  }
   if (args.apply) {
-    for (const row of rows) {
-      if (row.decision !== 'mark_done') continue;
-      const result = runGh(['api', '-X', 'DELETE', `/notifications/threads/${row.thread_id}`, '--silent']);
-      if (result.ok) {
-        markedDone.push(row.thread_id);
-      } else {
-        markErrors.push({
-          thread_id: row.thread_id,
-          error: (result.stderr || result.stdout).trim(),
-        });
+    if (applyBlockedReason.length === 0) {
+      for (const row of rows) {
+        if (row.decision !== 'mark_done') continue;
+        const result = runGh(['api', '-X', 'DELETE', `/notifications/threads/${row.thread_id}`, '--silent'], retry);
+        if (result.ok) {
+          markedDone.push(row.thread_id);
+        } else {
+          markErrors.push({
+            thread_id: row.thread_id,
+            error: (result.stderr || result.stdout).trim(),
+          });
+        }
       }
     }
   }
+
+  const openOrUnverifiable = rows.filter((r) => r.decision === 'keep');
+  const openByAge = openOrUnverifiable.reduce<Record<string, number>>((acc, row) => {
+    const bucket = ageBucket(row.updated_at);
+    acc[bucket] = (acc[bucket] ?? 0) + 1;
+    return acc;
+  }, {});
+  const openByRepo = openOrUnverifiable.reduce<Record<string, number>>((acc, row) => {
+    const repo = row.repository || '(unknown)';
+    acc[repo] = (acc[repo] ?? 0) + 1;
+    return acc;
+  }, {});
 
   const summary = {
     scope: args.scope,
     repo: args.repo ?? null,
     include_read: args.includeRead,
     apply: args.apply,
+    allowed_org: args.allowedOrg ?? null,
+    retry: retry,
+    allow_unverifiable_apply: args.allowUnverifiableApply,
     total_notifications: rows.length,
     unread_notifications: rows.filter((r) => r.unread).length,
     by_decision: {
@@ -388,6 +498,12 @@ function main(): void {
       acc[row.reason] = (acc[row.reason] ?? 0) + 1;
       return acc;
     }, {}),
+    open_risk: {
+      by_age_bucket: openByAge,
+      by_repository: openByRepo,
+    },
+    apply_blocked: applyBlockedReason.length > 0,
+    apply_blocked_reasons: applyBlockedReason,
     marked_done_count: markedDone.length,
     mark_errors_count: markErrors.length,
   };
@@ -397,7 +513,7 @@ function main(): void {
     marked_done_thread_ids: markedDone,
     mark_errors: markErrors,
     notifications: rows,
-    open_or_unverifiable: rows.filter((r) => r.decision === 'keep'),
+    open_or_unverifiable: openOrUnverifiable,
     done_candidates: rows.filter((r) => r.decision === 'mark_done'),
   };
 
@@ -443,6 +559,10 @@ function main(): void {
 
   console.info(JSON.stringify(summary, null, 2));
   console.info(`Report written to: ${args.outDir}`);
+  if (applyBlockedReason.length > 0) {
+    console.error(applyBlockedReason.join('\n'));
+    process.exitCode = 2;
+  }
 }
 
 main();

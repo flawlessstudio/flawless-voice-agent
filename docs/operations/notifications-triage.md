@@ -74,6 +74,19 @@ pwsh ./scripts/run-notifications-triage.ps1 -Scope repo -Repo owner/repo
 pwsh ./scripts/run-notifications-triage.ps1 -Scope repo -Repo owner/repo -Apply
 ```
 
+### Strict safety controls
+
+```powershell
+# Restrict to one org (default in wrapper is flawlessstudio)
+pwsh ./scripts/run-notifications-triage.ps1 -Scope global -AllowedOrg flawlessstudio
+
+# Fail apply when unverifiable items exist (default behavior)
+pwsh ./scripts/run-notifications-triage.ps1 -Scope global -Apply
+
+# Explicit override only when approved by operator
+pwsh ./scripts/run-notifications-triage.ps1 -Scope global -Apply -AllowUnverifiableApply
+```
+
 ## Output artifacts
 
 The script writes:
@@ -91,6 +104,7 @@ Before running `-Apply`:
 1. `mark_done` count looks correct.
 2. `unverifiable` items reviewed and accepted to remain.
 3. No critical open items are misclassified.
+4. `allowed_org` scope is correct for the intended operation.
 
 After running `-Apply`:
 

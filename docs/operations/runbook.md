@@ -36,4 +36,6 @@ curl https://your-domain/health
 2. Review `verified_open` and `unverifiable` entries in the generated report.
 3. Only then apply done for verified-resolved items:
    `pwsh ./scripts/run-notifications-triage.ps1 -Scope global -Apply`.
-4. If saturation is mostly `ci_activity`, prioritize CI noise reduction and repository watch tuning.
+4. Keep org scope bounded with `-AllowedOrg flawlessstudio` unless explicitly required.
+5. If apply is blocked by unverifiable items, resolve or document them before any override.
+6. If saturation is mostly `ci_activity`, prioritize CI noise reduction and repository watch tuning.
