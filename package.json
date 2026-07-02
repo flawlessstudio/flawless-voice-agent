@@ -12,6 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
+    "notifications:triage": "tsx scripts/notifications-triage.ts",
+    "notifications:triage:apply": "tsx scripts/notifications-triage.ts --scope global --apply",
     "clean": "rm -rf dist",
     "compliance:check": "echo \"compliance check placeholder\"",
     "eval:smoke": "echo \"eval smoke placeholder\"",

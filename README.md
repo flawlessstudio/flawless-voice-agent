@@ -232,7 +232,7 @@ The [`docs/`](./docs/) tree is the single source of truth. Start with the overvi
 |---|---|
 | 🏛️ **Architecture** | [Overview](./docs/architecture/overview.md) · [Fast path](./docs/architecture/fast-path.md) · [Deep path](./docs/architecture/deep-path.md) · [Fallback path](./docs/architecture/fallback-path.md) · [Multi-agent handoff](./docs/architecture/multi-agent-handoff.md) · [Scaling to 10k](./docs/architecture/scaling-10k.md) |
 | 🧭 **Decisions (ADRs)** | [Dual-path](./docs/architecture/adrs/ADR-001-dual-path.md) · [Redis session](./docs/architecture/adrs/ADR-002-redis-session.md) · [Registry-driven](./docs/architecture/adrs/ADR-003-registry-driven.md) · [Strict compliance](./docs/architecture/adrs/ADR-004-compliance-strict.md) |
-| ⚙️ **Operations** | [Local dev](./docs/operations/local-dev.md) · [Runbook](./docs/operations/runbook.md) · [Observability](./docs/operations/observability.md) · [Human handoff](./docs/operations/handoff-human.md) · [Release checklist](./docs/operations/release-checklist.md) |
+| ⚙️ **Operations** | [Local dev](./docs/operations/local-dev.md) · [Runbook](./docs/operations/runbook.md) · [Notifications triage](./docs/operations/notifications-triage.md) · [Observability](./docs/operations/observability.md) · [Human handoff](./docs/operations/handoff-human.md) · [Release checklist](./docs/operations/release-checklist.md) |
 | ⚖️ **Legal & compliance** | [Consent model](./docs/legal/consent-model.md) · [Data retention](./docs/legal/data-retention.md) · [GDPR / LOPD](./docs/legal/gdpr-lopd.md) · [Recording consent script](./docs/legal/recording-consent-script.md) |
 | 🔌 **API** | [API reference](./docs/api-references.md) |
 
