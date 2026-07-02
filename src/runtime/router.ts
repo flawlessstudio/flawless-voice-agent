@@ -1,8 +1,8 @@
-import { SessionStore } from './call-session';
+import { SessionStore } from './call-session.js';
 import { FastPath } from '../agents/fast-path.js';
 import { DeepPath } from '../agents/deep-path.js';
 import { FallbackPath } from '../agents/fallback-path.js';
-import { isOpen } from './circuit-breaker';
+import { isOpen } from './circuit-breaker.js';
 import { logger } from '../analytics/logger.js';
 
 // Keywords that signal the call needs multi-step reasoning, tool use or
@@ -46,6 +46,7 @@ export const sessionRouter = {
     if (isOpen('fast-path') && isOpen('deep-path')) {
       logger.warn('Both fast and deep path circuit breakers open — routing to fallback');
       sessions.set(body.CallSid, 'fallback');
+      SessionStore.update(body.CallSid, { path: 'fallback' });
       return FallbackPath.handle(session, body);
     }
 
@@ -56,6 +57,13 @@ export const sessionRouter = {
       sessions.set(body.CallSid, 'deep');
       SessionStore.update(body.CallSid, { path: 'deep' });
       return DeepPath.handle(session, body);
+    }
+
+    if (complexity >= DEEP_PATH_THRESHOLD && isOpen('deep-path')) {
+      logger.warn('Deep path circuit breaker open for complex call — routing to fallback');
+      sessions.set(body.CallSid, 'fallback');
+      SessionStore.update(body.CallSid, { path: 'fallback' });
+      return FallbackPath.handle(session, body);
     }
 
     if (isOpen('fast-path')) {
@@ -70,9 +78,8 @@ export const sessionRouter = {
   },
 
   async handleStatus(body: Record<string, string>): Promise<void> {
-    const session = SessionStore.get(body.CallSid);
-    if (session && body.CallStatus === 'completed') {
-      SessionStore.update(body.CallSid, { status: 'completed' });
+    if (body.CallStatus === 'completed') {
+      SessionStore.delete(body.CallSid);
       sessions.delete(body.CallSid);
     }
     logger.info({ callSid: body.CallSid, status: body.CallStatus }, 'Call status update');

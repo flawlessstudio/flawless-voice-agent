@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { logger } from '../analytics/logger';
+import { logger } from '../analytics/logger.js';
 
 const REALTIME_URL = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
 

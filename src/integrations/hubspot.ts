@@ -80,6 +80,15 @@ export interface UpsertContactParams {
   lastName?: string;
 }
 
+function toHubSpotDateTimeValue(value: string): string | null {
+  const timestamp = Date.parse(value);
+  if (Number.isNaN(timestamp)) {
+    logger.warn({ value }, '[hubspot] Invalid lastCallDate, skipping contact timestamp update');
+    return null;
+  }
+  return String(timestamp);
+}
+
 /**
  * Upserts a HubSpot contact keyed by phone number.
  * Uses the CRM v3 "search or create" idiom: search by phone, PATCH if found,
@@ -91,9 +100,11 @@ export async function upsertContact(params: UpsertContactParams): Promise<string
     limit: 1,
   }) as { results: { id: string }[] };
 
+  const lastCallTimestamp = toHubSpotDateTimeValue(params.lastCallDate);
   const properties = {
     phone: params.phone,
     hs_lead_status: 'CONNECTED',
+    ...(lastCallTimestamp !== null ? { notes_last_contacted: lastCallTimestamp } : {}),
     ...(params.firstName ? { firstname: params.firstName } : {}),
     ...(params.lastName ? { lastname: params.lastName } : {}),
   };
@@ -114,7 +125,11 @@ export async function upsertContact(params: UpsertContactParams): Promise<string
  * Logs a lightweight call engagement (used by the fast-path agent right after
  * a turn completes, independent of the full syncCallToHubSpot post-call flow).
  */
-export async function logCall(params: { sessionId: string; callSid: string | null }): Promise<string> {
+export async function logCall(params: {
+  sessionId: string;
+  callSid: string | null;
+  contactId: string;
+}): Promise<string> {
   const data = await post('/crm/v3/objects/calls', {
     properties: {
       hs_call_title: `Fast-path turn — session ${params.sessionId}`,
@@ -125,7 +140,8 @@ export async function logCall(params: { sessionId: string; callSid: string | nul
     },
   }) as { id: string };
 
-  logger.info({ callId: data.id }, '[hubspot] Fast-path call logged');
+  await associateCallToContact(data.id, params.contactId);
+  logger.info({ callId: data.id, contactId: params.contactId }, '[hubspot] Fast-path call logged');
   return data.id;
 }
 

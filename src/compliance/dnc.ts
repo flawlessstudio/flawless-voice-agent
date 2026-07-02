@@ -1,4 +1,4 @@
-import { logger } from '../analytics/logger';
+import { logger } from '../analytics/logger.js';
 
 // Internal opt-out list (in production: connect to DNC registry API)
 const internalOptOut = new Set<string>();

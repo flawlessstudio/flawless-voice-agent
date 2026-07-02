@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { sessionRouter } from '../runtime/router.js';
 
 export async function incomingCallRoute(app: FastifyInstance) {
   app.post('/incoming-call', async (_req, reply) => {
@@ -16,6 +17,19 @@ export async function incomingCallRoute(app: FastifyInstance) {
   </Connect>
 </Response>`;
 
+    reply.header('Content-Type', 'text/xml');
+    return reply.send(twiml);
+  });
+
+  app.post('/twilio/gather', async (req, reply) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const twilioPayload: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(body)) {
+      if (typeof value === 'string') twilioPayload[key] = value;
+    }
+
+    const twiml = await sessionRouter.handleIncoming(twilioPayload);
     reply.header('Content-Type', 'text/xml');
     return reply.send(twiml);
   });
