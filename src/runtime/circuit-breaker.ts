@@ -1,4 +1,4 @@
-import { logger } from '../analytics/logger';
+import { logger } from '../analytics/logger.js';
 
 interface CircuitBreakerState {
   failures: number;

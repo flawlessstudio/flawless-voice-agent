@@ -103,25 +103,95 @@ export interface UpsertLeadParams {
   [key: string]: string | null;
 }
 
+function firstNonEmpty(...values: Array<string | null | undefined>): string | null {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed) return trimmed;
+  }
+  return null;
+}
+
+function deriveLastName(fields: Record<string, string | null>, externalId: string): string {
+  const candidate = firstNonEmpty(
+    fields.LastName,
+    fields.lastName,
+    fields.lastname
+  );
+  if (candidate) return candidate;
+
+  const fullName = firstNonEmpty(
+    fields.Name,
+    fields.name,
+    fields.contactName,
+    fields.contact_name,
+    fields.fullName,
+    fields.full_name
+  );
+  if (fullName) {
+    const parts = fullName.split(/\s+/).filter(Boolean);
+    if (parts.length > 1) return parts[parts.length - 1];
+    return fullName;
+  }
+
+  return `Unknown-${externalId.slice(-8)}`;
+}
+
+function deriveCompany(fields: Record<string, string | null>, externalId: string): string {
+  return (
+    firstNonEmpty(
+      fields.Company,
+      fields.company,
+      fields.organization,
+      fields.organisation,
+      fields.org,
+      fields.businessName,
+      fields.business_name
+    ) ?? `Unknown Company ${externalId.slice(-8)}`
+  );
+}
+
+function escapeSoqlLiteral(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+async function findLeadIdByExternalId(externalId: string): Promise<string | null> {
+  const soql = `SELECT Id FROM Lead WHERE ExternalId__c = '${escapeSoqlLiteral(externalId)}' LIMIT 1`;
+  const response = await sfFetch(
+    `/services/data/v60.0/query?q=${encodeURIComponent(soql)}`,
+    'GET'
+  ) as { records?: Array<{ Id?: string }> } | null;
+
+  return response?.records?.[0]?.Id ?? null;
+}
+
 /**
  * Upserts a Salesforce Lead using the call's ExternalId as the idempotency
  * key (PATCH-by-external-id, "upsert" semantics per Salesforce REST API).
  */
 export async function upsertLead(params: UpsertLeadParams): Promise<string> {
   const externalId = params.callSid ?? `session-${Date.now()}`;
-  const { callSid: _callSid, ...fields } = params;
+  const { callSid: _callSid, qualified, ...fields } = params;
   void _callSid;
+
+  const lastName = deriveLastName(fields, externalId);
+  const company = deriveCompany(fields, externalId);
 
   const data = await sfFetch(
     `/services/data/v60.0/sobjects/Lead/ExternalId__c/${encodeURIComponent(externalId)}`,
     'PATCH',
     {
-      Status: fields.qualified === 'true' ? 'Qualified' : 'Working',
-      Description: JSON.stringify(fields),
+      LastName: lastName,
+      Company: company,
+      Status: qualified === 'true' ? 'Qualified' : 'Working',
+      Description: JSON.stringify({ qualified, ...fields }),
     }
   ) as { id?: string } | null;
 
-  const leadId = data?.id ?? externalId;
+  const leadId = data?.id ?? await findLeadIdByExternalId(externalId);
+  if (!leadId) {
+    throw new Error(`SF Lead upsert completed but no Lead Id could be resolved for ExternalId__c=${externalId}`);
+  }
+
   logger.info({ leadId }, '[salesforce] Lead upserted');
   return leadId;
 }
